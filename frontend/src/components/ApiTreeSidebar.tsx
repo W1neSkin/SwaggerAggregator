@@ -444,11 +444,15 @@ function SwaggerGroupNode({ envId, baseUrl, type, label, isExpanded, onToggle, o
   const queryClient = useQueryClient();
 
   // Lazy fetch endpoints only when this group is expanded
+  // Keep cached data for 10 min, don't refetch on window focus
   const { data: endpoints, isLoading, isError, error } = useQuery({
     queryKey: ["endpoints", envId, type],
     queryFn: () => swaggerApi.getEndpoints(envId, type),
     enabled: isExpanded,
-    retry: 1, // Retry once on failure before showing error
+    retry: 1,
+    staleTime: 10 * 60 * 1000,       // Data stays fresh for 10 min
+    gcTime: 30 * 60 * 1000,           // Keep in cache for 30 min
+    refetchOnWindowFocus: false,       // Don't refetch when user returns to tab
   });
 
   // Apply search filter to endpoints (guard against null/undefined fields)

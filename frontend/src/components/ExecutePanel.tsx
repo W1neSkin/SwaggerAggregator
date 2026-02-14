@@ -5,7 +5,8 @@
  */
 
 import { useState } from "react";
-import { proxyApi } from "@swagger-aggregator/shared";
+import { useQuery } from "@tanstack/react-query";
+import { proxyApi, secretsApi } from "@swagger-aggregator/shared";
 import type { EndpointInfo, ProxyResponse } from "@swagger-aggregator/shared";
 
 interface ExecutePanelProps {
@@ -63,6 +64,43 @@ export default function ExecutePanel({
   );
   const [jwtToken, setJwtToken] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+
+  // Inline JWT generator state
+  const [showJwtGen, setShowJwtGen] = useState(false);
+  const [jwtUserId, setJwtUserId] = useState("");
+  const [jwtSecretMode, setJwtSecretMode] = useState<"stored" | "manual">("stored");
+  const [jwtManualSecret, setJwtManualSecret] = useState("");
+  const [jwtGenLoading, setJwtGenLoading] = useState(false);
+  const [jwtGenError, setJwtGenError] = useState("");
+
+  // Check stored secret status for this environment (always fetch — used for both JWT and Admin)
+  const { data: secretStatus } = useQuery({
+    queryKey: ["secretStatus", environmentId],
+    queryFn: () => secretsApi.getSecretStatus(environmentId),
+    enabled: !!environmentId,
+  });
+
+  /** Generate JWT and auto-fill the token field */
+  const handleGenerateJwt = async () => {
+    if (!jwtUserId.trim()) { setJwtGenError("Enter a User ID"); return; }
+    if (jwtSecretMode === "manual" && !jwtManualSecret.trim()) { setJwtGenError("Enter a JWT secret"); return; }
+    setJwtGenLoading(true);
+    setJwtGenError("");
+    try {
+      const result = await secretsApi.generateJwt({
+        environment_id: environmentId,
+        user_id_value: jwtUserId,
+        ...(jwtSecretMode === "manual" ? { jwt_secret: jwtManualSecret } : {}),
+      });
+      setJwtToken(result.token);
+      setShowJwtGen(false); // collapse after success
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to generate";
+      setJwtGenError(msg);
+    } finally {
+      setJwtGenLoading(false);
+    }
+  };
 
   // Response
   const [response, setResponse] = useState<ProxyResponse | null>(null);
@@ -263,22 +301,130 @@ export default function ExecutePanel({
         </div>
 
         {authMode === "jwt" && (
-          <input
-            type="text"
-            value={jwtToken}
-            onChange={(e) => setJwtToken(e.target.value)}
-            placeholder="Paste JWT token from JWT Generator tab"
-            className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
-          />
+          <div className="space-y-2">
+            {/* Stored jwt_secret indicator (shown before opening the generator) */}
+            {secretStatus?.has_jwt_secret && !showJwtGen && !jwtToken && (
+              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-emerald-50 border border-emerald-200 rounded text-[11px] text-emerald-700">
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <span>Stored jwt_secret found — click Generate to create a token quickly</span>
+              </div>
+            )}
+            {/* Token input + generate button */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={jwtToken}
+                onChange={(e) => setJwtToken(e.target.value)}
+                placeholder="JWT token (paste or generate below)"
+                className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+              <button
+                type="button"
+                onClick={() => setShowJwtGen(!showJwtGen)}
+                className={`px-3 py-1.5 rounded text-xs font-semibold transition-all shrink-0 ${
+                  showJwtGen
+                    ? "bg-gray-200 text-gray-600"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                }`}
+              >
+                {showJwtGen ? "Close" : "Generate"}
+              </button>
+            </div>
+
+            {/* Inline JWT generator */}
+            {showJwtGen && (
+              <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Quick JWT Generator</p>
+
+                {/* User ID */}
+                <input
+                  type="text"
+                  value={jwtUserId}
+                  onChange={(e) => setJwtUserId(e.target.value)}
+                  placeholder='User ID (JWT "sub" claim)'
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+
+                {/* Secret mode toggle */}
+                <div className="flex gap-1 bg-gray-100 rounded p-0.5">
+                  {(["stored", "manual"] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setJwtSecretMode(m)}
+                      className={`flex-1 py-1 rounded text-[11px] font-medium transition-colors ${
+                        jwtSecretMode === m ? "bg-white shadow-sm text-gray-900" : "text-gray-500"
+                      }`}
+                    >
+                      {m === "stored" ? "Stored Secret" : "Enter Manually"}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Stored status */}
+                {jwtSecretMode === "stored" && (
+                  <p className={`text-[11px] ${secretStatus?.has_jwt_secret ? "text-emerald-600" : "text-amber-600"}`}>
+                    {secretStatus?.has_jwt_secret
+                      ? "jwt_secret is saved for this environment"
+                      : "No stored secret. Save in Settings or switch to manual."}
+                  </p>
+                )}
+
+                {/* Manual secret input */}
+                {jwtSecretMode === "manual" && (
+                  <input
+                    type="password"
+                    value={jwtManualSecret}
+                    onChange={(e) => setJwtManualSecret(e.target.value)}
+                    placeholder="JWT secret (not stored)"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                )}
+
+                {/* Error */}
+                {jwtGenError && <p className="text-[11px] text-red-600">{jwtGenError}</p>}
+
+                {/* Generate button */}
+                <button
+                  onClick={handleGenerateJwt}
+                  disabled={jwtGenLoading}
+                  className="w-full py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                >
+                  {jwtGenLoading ? "Generating..." : "Generate & Use"}
+                </button>
+
+                {jwtToken && (
+                  <p className="text-[11px] text-emerald-600 font-medium">Token ready.</p>
+                )}
+              </div>
+            )}
+          </div>
         )}
         {authMode === "admin" && (
-          <input
-            type="password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
-            placeholder="Admin password (uses stored one if empty)"
-            className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
-          />
+          <div className="space-y-1.5">
+            {/* Stored password indicator */}
+            {secretStatus?.has_admin_password && (
+              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-emerald-50 border border-emerald-200 rounded text-[11px] text-emerald-700">
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>Stored admin password found — leave field empty to use it automatically</span>
+              </div>
+            )}
+            {!secretStatus?.has_admin_password && secretStatus && (
+              <p className="text-[11px] text-amber-600">
+                No stored admin password. Enter manually or save one in Settings.
+              </p>
+            )}
+            <input
+              type="password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder={secretStatus?.has_admin_password ? "Leave empty to use stored password" : "Enter admin password"}
+              className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
+          </div>
         )}
       </div>
 

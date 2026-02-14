@@ -1,12 +1,17 @@
+/* Import Inter + JetBrains Mono fonts for clean modern typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @import "tailwindcss";
 
 /* Custom CSS variables for theming */
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
+  --card-foreground: #0f172a;
   --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #3b82f6;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -19,25 +24,108 @@
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #2563eb;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --success: #22c55e;
-  --warning: #eab308;
+  --warning: #f59e0b;
 }
 
 /* Base styles */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--background);
   color: var(--foreground);
+  line-height: 1.6;
+}
+
+/* Monospace font for code/endpoints */
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace !important;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus styles */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Utility classes for HTTP methods */
 .method-get { color: #22c55e; }
 .method-post { color: #3b82f6; }
-.method-put { color: #eab308; }
+.method-put { color: #f59e0b; }
 .method-delete { color: #ef4444; }
 .method-patch { color: #a855f7; }
+
+/* Gradient text utility */
+.text-gradient {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card hover lift effect */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.08), 0 4px 10px -3px rgb(0 0 0 / 0.04);
+}
+
+/* Smooth transitions on all interactive elements */
+button, a, input, select, textarea {
+  transition: all 0.15s ease;
+}
+
+/* Animated gradient background for login */
+.bg-gradient-animated {
+  background: linear-gradient(-45deg, #1e3a8a, #2563eb, #7c3aed, #4f46e5);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Skeleton loading animation */
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

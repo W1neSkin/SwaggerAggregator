@@ -1,6 +1,6 @@
 /**
- * Settings page.
- * Manage secrets (jwt_secret, admin_password) per environment.
+ * Settings page — redesigned.
+ * Manage secrets per environment with a clean card-based layout.
  */
 
 import { useState } from "react";
@@ -17,20 +17,15 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Fetch services
   const { data: services } = useQuery({
     queryKey: ["services"],
     queryFn: () => servicesApi.listServices(),
   });
-
-  // Fetch environments for selected service
   const { data: environments } = useQuery({
     queryKey: ["environments", selectedServiceId],
     queryFn: () => servicesApi.listEnvironments(selectedServiceId),
     enabled: !!selectedServiceId,
   });
-
-  // Fetch secret status for selected environment
   const { data: secretStatus } = useQuery({
     queryKey: ["secretStatus", selectedEnvId],
     queryFn: () => secretsApi.getSecretStatus(selectedEnvId),
@@ -38,30 +33,16 @@ export default function SettingsPage() {
   });
 
   const handleSave = async () => {
-    setError("");
-    setMessage("");
-
-    if (!selectedEnvId) {
-      setError("Please select an environment");
-      return;
-    }
-
-    // Only send non-empty fields
+    setError(""); setMessage("");
+    if (!selectedEnvId) { setError("Please select an environment"); return; }
     const data: { jwt_secret?: string; admin_password?: string } = {};
     if (jwtSecret.trim()) data.jwt_secret = jwtSecret;
     if (adminPassword.trim()) data.admin_password = adminPassword;
-
-    if (Object.keys(data).length === 0) {
-      setError("Please enter at least one secret to save");
-      return;
-    }
-
+    if (Object.keys(data).length === 0) { setError("Please enter at least one secret"); return; }
     try {
       await secretsApi.saveSecrets(selectedEnvId, data);
       setMessage("Secrets saved successfully!");
-      setJwtSecret("");
-      setAdminPassword("");
-      // Refresh secret status
+      setJwtSecret(""); setAdminPassword("");
       queryClient.invalidateQueries({ queryKey: ["secretStatus", selectedEnvId] });
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Failed to save secrets");
@@ -70,127 +51,102 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
-      <p className="text-gray-500 mb-4">
-        Manage your jwt_secret and admin_password for each environment.
-        Secrets are encrypted and stored securely.
-      </p>
-      <div className="mb-8 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-        Storing secrets is optional. You can choose to save them only for
-        certain environments (e.g. local, dev) and enter them manually
-        when needed for others (e.g. stage, prod) via the JWT Generator page.
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <p className="text-gray-500 text-sm mt-1">
+          Manage JWT secrets and admin passwords for your environments
+        </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        {/* Service selector */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Service
-          </label>
-          <select
-            value={selectedServiceId}
-            onChange={(e) => {
-              setSelectedServiceId(e.target.value);
-              setSelectedEnvId("");
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select a service...</option>
-            {services?.map((svc: Service) => (
-              <option key={svc.id} value={svc.id}>
-                {svc.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Info banner */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3">
+        <svg className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-sm text-blue-700">
+          Storing secrets is <strong>optional</strong>. Save them for local/dev environments and enter manually for stage/prod via the JWT Generator.
+        </p>
+      </div>
 
-        {/* Environment selector */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Environment
-          </label>
-          <select
-            value={selectedEnvId}
-            onChange={(e) => setSelectedEnvId(e.target.value)}
-            disabled={!selectedServiceId}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            <option value="">Select an environment...</option>
-            {environments?.map((env: Environment) => (
-              <option key={env.id} value={env.id}>
-                {env.name} ({env.base_url})
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-6 space-y-5">
+          {/* Service */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Service</label>
+            <select value={selectedServiceId}
+              onChange={(e) => { setSelectedServiceId(e.target.value); setSelectedEnvId(""); }}
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white">
+              <option value="">Select a service...</option>
+              {services?.map((svc: Service) => (
+                <option key={svc.id} value={svc.id}>{svc.name}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Secret status indicator */}
-        {secretStatus && (
-          <div className="p-3 bg-gray-50 rounded-lg text-sm">
-            <p className="font-medium text-gray-700 mb-1">Current Status:</p>
-            <div className="flex gap-4">
-              <span className={secretStatus.has_jwt_secret ? "text-green-600" : "text-gray-400"}>
-                {secretStatus.has_jwt_secret ? "jwt_secret saved" : "jwt_secret not set"}
-              </span>
-              <span
-                className={secretStatus.has_admin_password ? "text-green-600" : "text-gray-400"}
-              >
-                {secretStatus.has_admin_password
-                  ? "admin_password saved"
-                  : "admin_password not set"}
-              </span>
+          {/* Environment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Environment</label>
+            <select value={selectedEnvId}
+              onChange={(e) => setSelectedEnvId(e.target.value)}
+              disabled={!selectedServiceId}
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:opacity-50">
+              <option value="">Select an environment...</option>
+              {environments?.map((env: Environment) => (
+                <option key={env.id} value={env.id}>{env.name} ({env.base_url})</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Secret status */}
+          {secretStatus && (
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Current Status</p>
+              <div className="flex gap-6">
+                <div className="flex items-center gap-1.5 text-sm">
+                  <div className={`w-2 h-2 rounded-full ${secretStatus.has_jwt_secret ? "bg-emerald-500" : "bg-gray-300"}`} />
+                  <span className={secretStatus.has_jwt_secret ? "text-gray-700" : "text-gray-400"}>
+                    jwt_secret
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <div className={`w-2 h-2 rounded-full ${secretStatus.has_admin_password ? "bg-emerald-500" : "bg-gray-300"}`} />
+                  <span className={secretStatus.has_admin_password ? "text-gray-700" : "text-gray-400"}>
+                    admin_password
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* JWT Secret input */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            JWT Secret
-          </label>
-          <input
-            type="password"
-            value={jwtSecret}
-            onChange={(e) => setJwtSecret(e.target.value)}
-            placeholder="Enter new jwt_secret (leave empty to keep current)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {/* JWT Secret */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">JWT Secret</label>
+            <input type="password" value={jwtSecret} onChange={(e) => setJwtSecret(e.target.value)}
+              placeholder="Enter new jwt_secret (leave empty to keep current)"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" />
+          </div>
+
+          {/* Admin Password */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Admin Password</label>
+            <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="Enter new admin_password (leave empty to keep current)"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" />
+          </div>
+
+          {/* Messages */}
+          {error && <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm">{error}</div>}
+          {message && <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl text-sm">{message}</div>}
         </div>
-
-        {/* Admin Password input */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Admin Password
-          </label>
-          <input
-            type="password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
-            placeholder="Enter new admin_password (leave empty to keep current)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Messages */}
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-        {message && (
-          <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
-            {message}
-          </div>
-        )}
 
         {/* Save button */}
-        <button
-          onClick={handleSave}
-          disabled={!selectedEnvId}
-          className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          Save Secrets
-        </button>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+          <button onClick={handleSave} disabled={!selectedEnvId}
+            className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold text-sm hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 transition-all">
+            Save Secrets
+          </button>
+        </div>
       </div>
     </div>
   );

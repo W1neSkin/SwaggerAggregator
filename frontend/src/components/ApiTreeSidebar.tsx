@@ -23,12 +23,17 @@ export function makeEndpointKey(envId: string, type: SwaggerType, ep: EndpointIn
   return `${envId}:${type}:${ep.operation_id || `${ep.method}:${ep.path}:${idx}`}`;
 }
 
-/** What gets passed to the parent when an endpoint is selected */
-export interface TreeSelection {
-  endpoint: EndpointInfo;
-  environmentId: string;
-  baseUrl: string;
-  swaggerType: SwaggerType;
+/** Union type for all possible selections from the tree */
+export type TreeSelection =
+  | { type: "service"; service: Service }
+  | { type: "environment"; env: Environment; serviceId: string }
+  | { type: "endpoint"; endpoint: EndpointInfo; environmentId: string; baseUrl: string; swaggerType: SwaggerType };
+
+/** Compute a highlight key for any selection */
+export function selectionKey(sel: TreeSelection): string {
+  if (sel.type === "service") return `svc:${sel.service.id}`;
+  if (sel.type === "environment") return `env:${sel.env.id}`;
+  return makeEndpointKey(sel.environmentId, sel.swaggerType, sel.endpoint, 0);
 }
 
 interface ApiTreeSidebarProps {
@@ -117,6 +122,7 @@ export default function ApiTreeSidebar({ onSelect, selectedKey }: ApiTreeSidebar
               service={svc}
               isExpanded={expandedServices.has(svc.id)}
               onToggle={() => toggleService(svc.id)}
+              onSelectService={() => onSelect({ type: "service", service: svc })}
               onSelect={onSelect}
               selectedKey={selectedKey}
               searchFilter={searchFilter}
@@ -192,6 +198,7 @@ interface ServiceNodeProps {
   service: Service;
   isExpanded: boolean;
   onToggle: () => void;
+  onSelectService: () => void;
   onSelect: (sel: TreeSelection) => void;
   selectedKey: string | null;
   searchFilter: string;
@@ -200,7 +207,7 @@ interface ServiceNodeProps {
   setConfirmDialog: React.Dispatch<React.SetStateAction<{ isOpen: boolean; title: string; message: string; onConfirm: () => void }>>;
 }
 
-function ServiceNode({ service, isExpanded, onToggle, onSelect, selectedKey, searchFilter, onDelete, setConfirmDialog }: ServiceNodeProps) {
+function ServiceNode({ service, isExpanded, onToggle, onSelectService, onSelect, selectedKey, searchFilter, onDelete, setConfirmDialog }: ServiceNodeProps) {
   const queryClient = useQueryClient();
 
   // Lazy fetch environments when service is expanded
@@ -245,13 +252,18 @@ function ServiceNode({ service, isExpanded, onToggle, onSelect, selectedKey, sea
 
   return (
     <div>
-      {/* Service row */}
-      <div className="group flex items-center pr-1">
-        <button onClick={onToggle} className="flex-1 flex items-center gap-1.5 px-3 py-2 text-left hover:bg-gray-50 transition-colors">
+      {/* Service row — chevron toggles, label selects + expands */}
+      <div className={`group flex items-center pr-1 ${selectedKey === `svc:${service.id}` ? "bg-blue-50" : ""}`}>
+        {/* Chevron: toggle only */}
+        <button onClick={onToggle} className="pl-3 py-2 pr-1 hover:bg-gray-50 transition-colors">
           <svg className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
+        </button>
+        {/* Label: select service + expand */}
+        <button onClick={() => { onSelectService(); if (!isExpanded) onToggle(); }}
+          className="flex-1 flex items-center gap-1.5 py-2 pr-1 text-left hover:bg-gray-50 transition-colors truncate">
           <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
           </svg>
@@ -279,8 +291,10 @@ function ServiceNode({ service, isExpanded, onToggle, onSelect, selectedKey, sea
             <EnvironmentNode
               key={env.id}
               env={env}
+              serviceId={service.id}
               isExpanded={expandedEnvs.has(env.id)}
               onToggle={() => toggleEnv(env.id)}
+              onSelectEnv={() => onSelect({ type: "environment", env, serviceId: service.id })}
               onSelect={onSelect}
               selectedKey={selectedKey}
               searchFilter={searchFilter}
@@ -324,15 +338,17 @@ function ServiceNode({ service, isExpanded, onToggle, onSelect, selectedKey, sea
 
 interface EnvironmentNodeProps {
   env: Environment;
+  serviceId: string;
   isExpanded: boolean;
   onToggle: () => void;
+  onSelectEnv: () => void;
   onSelect: (sel: TreeSelection) => void;
   selectedKey: string | null;
   searchFilter: string;
   onDelete: () => void;
 }
 
-function EnvironmentNode({ env, isExpanded, onToggle, onSelect, selectedKey, searchFilter, onDelete }: EnvironmentNodeProps) {
+function EnvironmentNode({ env, serviceId, isExpanded, onToggle, onSelectEnv, onSelect, selectedKey, searchFilter, onDelete }: EnvironmentNodeProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const toggleGroup = (type: string) => {
@@ -345,13 +361,18 @@ function EnvironmentNode({ env, isExpanded, onToggle, onSelect, selectedKey, sea
 
   return (
     <div>
-      {/* Environment row */}
-      <div className="group flex items-center pr-1">
-        <button onClick={onToggle} className="flex-1 flex items-center gap-1.5 px-3 py-1.5 text-left hover:bg-gray-50 transition-colors">
+      {/* Environment row — chevron toggles, label selects + expands */}
+      <div className={`group flex items-center pr-1 ${selectedKey === `env:${env.id}` ? "bg-blue-50" : ""}`}>
+        {/* Chevron: toggle only */}
+        <button onClick={onToggle} className="pl-3 py-1.5 pr-1 hover:bg-gray-50 transition-colors">
           <svg className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
+        </button>
+        {/* Label: select environment + expand */}
+        <button onClick={() => { onSelectEnv(); if (!isExpanded) onToggle(); }}
+          className="flex-1 flex items-center gap-1.5 py-1.5 pr-1 text-left hover:bg-gray-50 transition-colors truncate">
           <span className="text-xs text-gray-600 truncate">{env.name}</span>
           <span className="text-[9px] text-gray-400 truncate ml-auto">{env.base_url.replace(/https?:\/\//, "").split("/")[0]}</span>
         </button>
@@ -459,7 +480,7 @@ function SwaggerGroupNode({ envId, baseUrl, type, label, isExpanded, onToggle, o
               return (
                 <button
                   key={key}
-                  onClick={() => onSelect({ endpoint: ep, environmentId: envId, baseUrl, swaggerType: type })}
+                  onClick={() => onSelect({ type: "endpoint", endpoint: ep, environmentId: envId, baseUrl, swaggerType: type })}
                   className={`w-full flex items-center gap-1.5 px-2 py-1 text-left rounded transition-all ${
                     isSelected ? "bg-blue-50 ring-1 ring-blue-200" : "hover:bg-gray-50"
                   }`}

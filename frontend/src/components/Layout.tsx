@@ -93,7 +93,6 @@ export default function Layout() {
               </Link>
               <NavLink to="/" icon={icons.dashboard} label="Explorer" />
               <NavLink to="/jwt" icon={icons.key} label="JWT" />
-              <NavLink to="/settings" icon={icons.settings} label="Settings" />
             </div>
 
             {/* User info and logout */}

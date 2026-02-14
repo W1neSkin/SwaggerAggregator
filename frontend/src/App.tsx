@@ -13,7 +13,6 @@ import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
 import ExplorerPage from "./pages/ExplorerPage";
 import JwtPage from "./pages/JwtPage";
-import SettingsPage from "./pages/SettingsPage";
 
 // React Query client
 const queryClient = new QueryClient({
@@ -60,7 +59,6 @@ function AppRoutes() {
       >
         <Route path="/" element={<ExplorerPage />} />
         <Route path="/jwt" element={<JwtPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
       {/* Catch-all redirect */}

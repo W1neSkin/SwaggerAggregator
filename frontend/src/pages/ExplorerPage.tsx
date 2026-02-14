@@ -1,80 +1,51 @@
 /**
- * ExplorerPage — unified API explorer with tree sidebar and endpoint detail panel.
- * Replaces the old Dashboard + ServicePage flow with a single-page experience.
+ * ExplorerPage — unified API explorer with tree sidebar and context-aware detail panel.
+ * Right panel shows ServiceDetail, EnvironmentDetail, or EndpointDetail based on tree selection.
  */
 
 import { useState } from "react";
-import type { EndpointInfo, SwaggerType } from "@swagger-aggregator/shared";
-import ApiTreeSidebar, { makeEndpointKey } from "../components/ApiTreeSidebar";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { servicesApi, swaggerApi, secretsApi } from "@swagger-aggregator/shared";
+import type { Service, Environment, EndpointInfo, SwaggerType, SecretStatus } from "@swagger-aggregator/shared";
+import ApiTreeSidebar, { selectionKey } from "../components/ApiTreeSidebar";
 import type { TreeSelection } from "../components/ApiTreeSidebar";
 import ExecutePanel from "../components/ExecutePanel";
 
-/** Method badge styles for the detail panel */
-const methodStyles: Record<string, string> = {
-  GET: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  POST: "bg-blue-50 text-blue-700 ring-blue-200",
-  PUT: "bg-amber-50 text-amber-700 ring-amber-200",
-  DELETE: "bg-red-50 text-red-700 ring-red-200",
-  PATCH: "bg-purple-50 text-purple-700 ring-purple-200",
+/** Method badge colors */
+const methodBadge: Record<string, string> = {
+  GET: "bg-emerald-100 text-emerald-700",
+  POST: "bg-blue-100 text-blue-700",
+  PUT: "bg-amber-100 text-amber-700",
+  DELETE: "bg-red-100 text-red-700",
+  PATCH: "bg-purple-100 text-purple-700",
 };
 
 export default function ExplorerPage() {
-  // Currently selected endpoint from the tree
   const [selection, setSelection] = useState<TreeSelection | null>(null);
-  const [executeOpen, setExecuteOpen] = useState(false);
 
-  // Compute the selected key for highlighting in the tree
-  const selectedKey = selection
-    ? makeEndpointKey(
-        selection.environmentId,
-        selection.swaggerType,
-        selection.endpoint,
-        0 // idx doesn't matter for operation_id-based keys; fallback works for method:path
-      )
-    : null;
+  const selectedKey = selection ? selectionKey(selection) : null;
 
-  const handleSelect = (sel: TreeSelection) => {
-    setSelection(sel);
-    setExecuteOpen(false); // reset execute panel when switching endpoints
-  };
-
-  const getMethodStyle = (method: string) =>
-    methodStyles[method] || "bg-gray-50 text-gray-700 ring-gray-200";
-
-  const formatJson = (obj: unknown) => {
-    try { return JSON.stringify(obj, null, 2); }
-    catch { return String(obj); }
-  };
+  const handleSelect = (sel: TreeSelection) => setSelection(sel);
 
   return (
     <div className="flex h-full">
       {/* Left: tree sidebar */}
       <ApiTreeSidebar onSelect={handleSelect} selectedKey={selectedKey} />
 
-      {/* Right: endpoint detail panel */}
+      {/* Right: context-aware detail panel */}
       <div className="flex-1 overflow-y-auto bg-[#f8fafc]">
         {!selection ? (
-          /* Empty state — no endpoint selected */
-          <div className="flex items-center justify-center h-full text-gray-400">
-            <div className="text-center">
-              <svg className="w-16 h-16 mx-auto mb-4 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-              </svg>
-              <p className="text-lg font-medium text-gray-400">Select an endpoint</p>
-              <p className="text-sm text-gray-300 mt-1">Expand a service in the sidebar to browse endpoints</p>
-            </div>
-          </div>
+          <EmptyState />
+        ) : selection.type === "service" ? (
+          <ServiceDetail service={selection.service} onSelect={handleSelect} />
+        ) : selection.type === "environment" ? (
+          <EnvironmentDetail env={selection.env} serviceId={selection.serviceId} onSelect={handleSelect} />
         ) : (
-          /* Endpoint detail */
           <EndpointDetail
             endpoint={selection.endpoint}
             environmentId={selection.environmentId}
             baseUrl={selection.baseUrl}
             swaggerType={selection.swaggerType}
-            executeOpen={executeOpen}
-            setExecuteOpen={setExecuteOpen}
-            getMethodStyle={getMethodStyle}
-            formatJson={formatJson}
           />
         )}
       </div>
@@ -82,24 +53,304 @@ export default function ExplorerPage() {
   );
 }
 
-// ─── ENDPOINT DETAIL (right panel) ────────────────────────────────────────────
+// ─── EMPTY STATE ──────────────────────────────────────────────────────────────
 
-interface EndpointDetailProps {
-  endpoint: EndpointInfo;
-  environmentId: string;
+function EmptyState() {
+  return (
+    <div className="flex items-center justify-center h-full text-gray-400">
+      <div className="text-center">
+        <svg className="w-16 h-16 mx-auto mb-4 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+        </svg>
+        <p className="text-lg font-medium">Select an item</p>
+        <p className="text-sm text-gray-300 mt-1">Click a service, environment, or endpoint in the sidebar</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── SERVICE DETAIL ───────────────────────────────────────────────────────────
+
+function ServiceDetail({ service, onSelect }: { service: Service; onSelect: (sel: TreeSelection) => void }) {
+  // Fetch environments for this service
+  const { data: environments } = useQuery({
+    queryKey: ["environments", service.id],
+    queryFn: () => servicesApi.listEnvironments(service.id),
+  });
+
+  return (
+    <div className="p-6 max-w-3xl space-y-6">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">{service.name}</h1>
+            {service.description && <p className="text-sm text-gray-500">{service.description}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="flex gap-4">
+        <div className="bg-white rounded-xl border border-gray-100 px-4 py-3">
+          <p className="text-2xl font-bold text-gray-900">{environments?.length ?? "..."}</p>
+          <p className="text-xs text-gray-500">Environments</p>
+        </div>
+      </div>
+
+      {/* Environments list */}
+      <div>
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Environments</h3>
+        {environments && environments.length > 0 ? (
+          <div className="space-y-2">
+            {environments.map((env: Environment) => (
+              <EnvironmentCard key={env.id} env={env} serviceId={service.id} onSelect={onSelect} />
+            ))}
+          </div>
+        ) : environments && environments.length === 0 ? (
+          <p className="text-sm text-gray-400">No environments yet. Add one from the sidebar.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Small card for an environment inside ServiceDetail */
+function EnvironmentCard({ env, serviceId, onSelect }: { env: Environment; serviceId: string; onSelect: (sel: TreeSelection) => void }) {
+  // Fetch secret status for this environment
+  const { data: secretStatus } = useQuery({
+    queryKey: ["secretStatus", env.id],
+    queryFn: () => secretsApi.getSecretStatus(env.id),
+  });
+
+  return (
+    <button
+      onClick={() => onSelect({ type: "environment", env, serviceId })}
+      className="w-full text-left bg-white rounded-xl border border-gray-100 p-4 hover:border-blue-200 hover:shadow-sm transition-all"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-800">{env.name}</p>
+          <p className="text-xs text-gray-400 font-mono mt-0.5">{env.base_url}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Secret status dots */}
+          <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+            <div className={`w-2 h-2 rounded-full ${secretStatus?.has_jwt_secret ? "bg-emerald-500" : "bg-gray-200"}`} />
+            <span>JWT</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+            <div className={`w-2 h-2 rounded-full ${secretStatus?.has_admin_password ? "bg-emerald-500" : "bg-gray-200"}`} />
+            <span>Admin</span>
+          </div>
+          <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── ENVIRONMENT DETAIL ───────────────────────────────────────────────────────
+
+function EnvironmentDetail({ env, serviceId, onSelect }: { env: Environment; serviceId: string; onSelect: (sel: TreeSelection) => void }) {
+  const queryClient = useQueryClient();
+
+  // Secrets management state
+  const [jwtSecret, setJwtSecret] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [saveMsg, setSaveMsg] = useState("");
+  const [saveErr, setSaveErr] = useState("");
+
+  // Fetch secret status
+  const { data: secretStatus } = useQuery({
+    queryKey: ["secretStatus", env.id],
+    queryFn: () => secretsApi.getSecretStatus(env.id),
+  });
+
+  // Fetch endpoints for overview (both API and Admin API)
+  const { data: mainEndpoints } = useQuery({
+    queryKey: ["endpoints", env.id, "main"],
+    queryFn: () => swaggerApi.getEndpoints(env.id, "main"),
+  });
+  const { data: adminEndpoints } = useQuery({
+    queryKey: ["endpoints", env.id, "admin"],
+    queryFn: () => swaggerApi.getEndpoints(env.id, "admin"),
+  });
+
+  const handleSave = async () => {
+    setSaveErr(""); setSaveMsg("");
+    const data: { jwt_secret?: string; admin_password?: string } = {};
+    if (jwtSecret.trim()) data.jwt_secret = jwtSecret;
+    if (adminPassword.trim()) data.admin_password = adminPassword;
+    if (Object.keys(data).length === 0) { setSaveErr("Enter at least one secret"); return; }
+    try {
+      await secretsApi.saveSecrets(env.id, data);
+      setSaveMsg("Secrets saved!");
+      setJwtSecret(""); setAdminPassword("");
+      queryClient.invalidateQueries({ queryKey: ["secretStatus", env.id] });
+    } catch (err: unknown) {
+      setSaveErr((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to save");
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-3xl space-y-6">
+      {/* Header */}
+      <div>
+        <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Environment</p>
+        <h1 className="text-xl font-bold text-gray-900">{env.name}</h1>
+        <p className="text-sm text-gray-500 font-mono mt-0.5">{env.base_url}</p>
+      </div>
+
+      {/* Secrets management */}
+      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-800">Secrets</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Store jwt_secret and admin_password for this environment</p>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Current status */}
+          {secretStatus && <SecretStatusBadges status={secretStatus} />}
+
+          {/* JWT Secret input */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">JWT Secret</label>
+            <input
+              type="password" value={jwtSecret} onChange={(e) => setJwtSecret(e.target.value)}
+              placeholder="Enter new jwt_secret (leave empty to keep current)"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            />
+          </div>
+
+          {/* Admin Password input */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Admin Password</label>
+            <input
+              type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="Enter new admin_password (leave empty to keep current)"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            />
+          </div>
+
+          {/* Messages */}
+          {saveErr && <p className="text-xs text-red-600">{saveErr}</p>}
+          {saveMsg && <p className="text-xs text-emerald-600">{saveMsg}</p>}
+
+          {/* Save button */}
+          <button onClick={handleSave}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+            Save Secrets
+          </button>
+        </div>
+      </div>
+
+      {/* Endpoint overview — API */}
+      <EndpointOverviewSection
+        label="API"
+        endpoints={mainEndpoints}
+        envId={env.id}
+        baseUrl={env.base_url}
+        swaggerType="main"
+        onSelect={onSelect}
+      />
+
+      {/* Endpoint overview — Admin API */}
+      <EndpointOverviewSection
+        label="Admin API"
+        endpoints={adminEndpoints}
+        envId={env.id}
+        baseUrl={env.base_url}
+        swaggerType="admin"
+        onSelect={onSelect}
+      />
+    </div>
+  );
+}
+
+/** Displays green/gray dots for jwt_secret and admin_password */
+function SecretStatusBadges({ status }: { status: SecretStatus }) {
+  return (
+    <div className="flex gap-4 p-3 bg-gray-50 rounded-lg">
+      <div className="flex items-center gap-1.5 text-sm">
+        <div className={`w-2.5 h-2.5 rounded-full ${status.has_jwt_secret ? "bg-emerald-500" : "bg-gray-300"}`} />
+        <span className={status.has_jwt_secret ? "text-gray-700" : "text-gray-400"}>jwt_secret</span>
+      </div>
+      <div className="flex items-center gap-1.5 text-sm">
+        <div className={`w-2.5 h-2.5 rounded-full ${status.has_admin_password ? "bg-emerald-500" : "bg-gray-300"}`} />
+        <span className={status.has_admin_password ? "text-gray-700" : "text-gray-400"}>admin_password</span>
+      </div>
+    </div>
+  );
+}
+
+/** Compact endpoint list section used in EnvironmentDetail */
+function EndpointOverviewSection({
+  label, endpoints, envId, baseUrl, swaggerType, onSelect,
+}: {
+  label: string;
+  endpoints: EndpointInfo[] | undefined;
+  envId: string;
   baseUrl: string;
   swaggerType: SwaggerType;
-  executeOpen: boolean;
-  setExecuteOpen: (v: boolean) => void;
-  getMethodStyle: (method: string) => string;
-  formatJson: (obj: unknown) => string;
+  onSelect: (sel: TreeSelection) => void;
+}) {
+  if (!endpoints) return null;
+
+  return (
+    <div>
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        {label} <span className="text-gray-300">({endpoints.length} endpoints)</span>
+      </h3>
+      {endpoints.length > 0 ? (
+        <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
+          {endpoints.map((ep: EndpointInfo, idx: number) => {
+            const mc = methodBadge[ep.method] || "bg-gray-100 text-gray-600";
+            return (
+              <button
+                key={idx}
+                onClick={() => onSelect({ type: "endpoint", endpoint: ep, environmentId: envId, baseUrl, swaggerType })}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+              >
+                <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold w-12 justify-center shrink-0 ${mc}`}>
+                  {ep.method}
+                </span>
+                <span className="font-mono text-xs text-gray-700 truncate">{ep.path}</span>
+                {ep.summary && (
+                  <span className="text-[11px] text-gray-400 truncate ml-auto">{ep.summary}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400">No endpoints found</p>
+      )}
+    </div>
+  );
 }
+
+// ─── ENDPOINT DETAIL ──────────────────────────────────────────────────────────
 
 function EndpointDetail({
   endpoint, environmentId, baseUrl, swaggerType,
-  executeOpen, setExecuteOpen, getMethodStyle, formatJson,
-}: EndpointDetailProps) {
-  const ms = getMethodStyle(endpoint.method);
+}: {
+  endpoint: EndpointInfo; environmentId: string; baseUrl: string; swaggerType: SwaggerType;
+}) {
+  const [executeOpen, setExecuteOpen] = useState(false);
+  const ms = methodBadge[endpoint.method] || "bg-gray-100 text-gray-600";
+
+  const formatJson = (obj: unknown) => {
+    try { return JSON.stringify(obj, null, 2); }
+    catch { return String(obj); }
+  };
 
   return (
     <div className="p-6 max-w-4xl space-y-5">
@@ -185,7 +436,7 @@ function EndpointDetail({
         </div>
       )}
 
-      {/* Try it out button + execute panel */}
+      {/* Try it out */}
       <div className="border-t border-gray-200 pt-4">
         <button
           onClick={() => setExecuteOpen(!executeOpen)}
@@ -201,14 +452,8 @@ function EndpointDetail({
           </svg>
           {executeOpen ? "Close" : "Try it out"}
         </button>
-
         {executeOpen && (
-          <ExecutePanel
-            endpoint={endpoint}
-            baseUrl={baseUrl}
-            environmentId={environmentId}
-            swaggerType={swaggerType}
-          />
+          <ExecutePanel endpoint={endpoint} baseUrl={baseUrl} environmentId={environmentId} swaggerType={swaggerType} />
         )}
       </div>
     </div>

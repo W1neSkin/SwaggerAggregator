@@ -16,7 +16,7 @@ from sqlalchemy import select
 from app.models.secret import UserSecret
 from app.routers.deps import CurrentUser, DbSession
 from app.schemas.proxy import ProxyRequest, ProxyResponse
-from app.services.encryption import decrypt_value
+from app.services.encryption import decrypt_secret
 
 router = APIRouter(prefix="/api/proxy", tags=["Proxy"])
 
@@ -114,7 +114,7 @@ async def _get_stored_admin_password(
     secret = result.scalar_one_or_none()
     if secret and secret.admin_password_encrypted:
         try:
-            return decrypt_value(secret.admin_password_encrypted, encryption_salt)
+            return decrypt_secret(secret.admin_password_encrypted, encryption_salt.encode("utf-8"))
         except Exception:
             return None
     return None

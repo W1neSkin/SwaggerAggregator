@@ -92,12 +92,13 @@ async def execute_request(
             detail=f"Request failed: {str(e)}",
         )
 
-    # Return the response
+    # Return the response (include request_url for debugging)
     return ProxyResponse(
         status_code=response.status_code,
         headers=dict(response.headers),
         body=response.text,
         elapsed_ms=elapsed_ms,
+        request_url=str(response.url),
     )
 
 

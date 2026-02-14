@@ -471,6 +471,12 @@ export default function ExecutePanel({
             </span>
             <span className="text-xs text-gray-500">{response.elapsed_ms}ms</span>
           </div>
+          {/* Debug: show actual URL that proxy called */}
+          {response.request_url && (
+            <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50">
+              <span className="text-[10px] text-gray-400 font-mono break-all">{response.request_url}</span>
+            </div>
+          )}
           {/* Response body */}
           <pre className="p-3 text-xs font-mono overflow-auto max-h-80 text-gray-800 whitespace-pre-wrap">
             {formatBody(response.body)}

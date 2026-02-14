@@ -22,4 +22,5 @@ export interface ProxyResponse {
   headers: Record<string, string>;
   body: string;
   elapsed_ms: number;
+  request_url?: string;             // Actual URL the proxy called (debug)
 }

@@ -1,11 +1,12 @@
 {
-  "name": "swagger-aggregator",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Swagger Aggregator - manage multiple services from one place",
-  "workspaces": [
-    "shared",
-    "frontend",
-    "mobile"
-  ]
+  "name": "screenshot-tool",
+  "version": "1.0.0",
+  "description": "Screenshot automation for Swagger Aggregator app",
+  "main": "screenshot_app.js",
+  "scripts": {
+    "screenshot": "node screenshot_app.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
 }

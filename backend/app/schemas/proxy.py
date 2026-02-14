@@ -28,3 +28,4 @@ class ProxyResponse(BaseModel):
     headers: dict[str, str]
     body: str                                   # Raw response body
     elapsed_ms: int                             # Request duration in milliseconds
+    request_url: str = ""                       # Actual URL that was called (debug)

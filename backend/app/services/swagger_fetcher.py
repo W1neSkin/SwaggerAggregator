@@ -4,6 +4,8 @@ Fetches OpenAPI specs from remote services, parses them,
 and caches them in the database.
 """
 
+import json
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 
 import httpx
@@ -18,30 +20,64 @@ from app.schemas.swagger import EndpointInfo
 CACHE_TTL_MINUTES = 10
 
 
+# --- Custom exceptions for specific failure modes ---
+class SwaggerFetchError(Exception):
+    """Base exception for swagger fetch failures."""
+
+    def __init__(self, message: str, url: str = ""):
+        self.url = url
+        super().__init__(message)
+
+
+class SwaggerTimeoutError(SwaggerFetchError):
+    """Raised when the remote service does not respond within the timeout."""
+
+
+class SwaggerConnectionError(SwaggerFetchError):
+    """Raised when the connection to the remote service fails (DNS, refused, etc.)."""
+
+
+class SwaggerHttpError(SwaggerFetchError):
+    """Raised when the remote returns a non-2xx HTTP status."""
+
+    def __init__(self, message: str, url: str = "", status_code: int | None = None):
+        super().__init__(message, url)
+        self.status_code = status_code
+
+
+class SwaggerInvalidJsonError(SwaggerFetchError):
+    """Raised when the response body is not valid JSON."""
+
+
+@dataclass
+class SwaggerFetchResult:
+    """Result of fetching a swagger spec, including metadata."""
+
+    spec: dict
+    fetched_at: datetime
+    source: str  # "cache" or "remote"
+
+
 async def fetch_swagger_spec(
     db: AsyncSession,
     environment: Environment,
     swagger_type: str = "main",
     force_refresh: bool = False,
-) -> dict:
+) -> SwaggerFetchResult:
     """
     Fetch the OpenAPI spec for an environment.
     Uses cached version if available and not expired.
-
-    Args:
-        db: Database session
-        environment: The environment to fetch swagger from
-        swagger_type: "main" or "admin"
-        force_refresh: If True, always fetch from remote
+    Raises specific SwaggerFetchError subclasses on failure.
 
     Returns:
-        The OpenAPI spec as a dict
+        SwaggerFetchResult with spec, fetched_at timestamp, and source.
     """
     # Check cache first (unless force refresh)
     if not force_refresh:
         cached = await _get_cached_spec(db, environment.id, swagger_type)
         if cached:
-            return cached
+            spec, fetched_at = cached
+            return SwaggerFetchResult(spec=spec, fetched_at=fetched_at, source="cache")
 
     # Determine the URL to fetch
     if swagger_type == "admin":
@@ -49,24 +85,39 @@ async def fetch_swagger_spec(
     else:
         url = f"{environment.base_url.rstrip('/')}{environment.swagger_path}"
 
-    # Fetch from remote service
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url)
-        response.raise_for_status()
+    # Fetch from remote service with specific error handling
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+    except httpx.TimeoutException:
+        raise SwaggerTimeoutError(f"Request timed out after 30s", url=url)
+    except httpx.ConnectError:
+        raise SwaggerConnectionError(f"Could not connect to {url}", url=url)
+    except httpx.HTTPStatusError as e:
+        raise SwaggerHttpError(
+            f"HTTP {e.response.status_code} from {url}",
+            url=url,
+            status_code=e.response.status_code,
+        )
+
+    # Parse JSON response
+    try:
         spec = response.json()
+    except (json.JSONDecodeError, ValueError):
+        raise SwaggerInvalidJsonError(f"Response is not valid JSON", url=url)
 
-    # Save to cache
-    await _save_to_cache(db, environment.id, swagger_type, spec)
-
-    return spec
+    # Save to cache and return
+    fetched_at = await _save_to_cache(db, environment.id, swagger_type, spec)
+    return SwaggerFetchResult(spec=spec, fetched_at=fetched_at, source="remote")
 
 
 async def _get_cached_spec(
     db: AsyncSession,
     environment_id,
     swagger_type: str,
-) -> dict | None:
-    """Get cached spec if it exists and is not expired."""
+) -> tuple[dict, datetime] | None:
+    """Get cached spec if it exists and is not expired. Returns (spec, fetched_at) or None."""
     result = await db.execute(
         select(SwaggerCache).where(
             SwaggerCache.environment_id == environment_id,
@@ -83,7 +134,7 @@ async def _get_cached_spec(
     if datetime.now(timezone.utc) > expiry:
         return None
 
-    return cache.spec_json
+    return (cache.spec_json, cache.fetched_at)
 
 
 async def _save_to_cache(
@@ -91,8 +142,9 @@ async def _save_to_cache(
     environment_id,
     swagger_type: str,
     spec: dict,
-) -> None:
-    """Save or update cached spec in the database."""
+) -> datetime:
+    """Save or update cached spec in the database. Returns the fetched_at timestamp."""
+    fetched_at = datetime.now(timezone.utc)
     result = await db.execute(
         select(SwaggerCache).where(
             SwaggerCache.environment_id == environment_id,
@@ -104,17 +156,19 @@ async def _save_to_cache(
     if cache:
         # Update existing cache entry
         cache.spec_json = spec
-        cache.fetched_at = datetime.now(timezone.utc)
+        cache.fetched_at = fetched_at
     else:
         # Create new cache entry
         cache = SwaggerCache(
             environment_id=environment_id,
             swagger_type=swagger_type,
             spec_json=spec,
+            fetched_at=fetched_at,
         )
         db.add(cache)
 
     await db.commit()
+    return fetched_at
 
 
 def parse_endpoints(spec: dict) -> list[EndpointInfo]:

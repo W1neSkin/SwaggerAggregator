@@ -11,9 +11,47 @@ from sqlalchemy import select
 from app.models.environment import Environment
 from app.routers.deps import CurrentUser, DbSession
 from app.schemas.swagger import EndpointInfo, SwaggerSpecResponse
-from app.services.swagger_fetcher import fetch_swagger_spec, parse_endpoints
+from app.services.swagger_fetcher import (
+    SwaggerConnectionError,
+    SwaggerFetchError,
+    SwaggerHttpError,
+    SwaggerInvalidJsonError,
+    SwaggerTimeoutError,
+    fetch_swagger_spec,
+    parse_endpoints,
+)
 
 router = APIRouter(prefix="/api/swagger", tags=["Swagger"])
+
+
+def _swagger_error_to_http(exc: SwaggerFetchError) -> HTTPException:
+    """Map swagger fetch exceptions to HTTP responses with user-friendly messages."""
+    if isinstance(exc, SwaggerTimeoutError):
+        return HTTPException(
+            status_code=504,
+            detail="Swagger service did not respond in time. The remote may be slow or unavailable.",
+        )
+    if isinstance(exc, SwaggerConnectionError):
+        return HTTPException(
+            status_code=502,
+            detail="Could not connect to swagger service. Check that the service URL is correct and reachable.",
+        )
+    if isinstance(exc, SwaggerHttpError):
+        status = exc.status_code or 502
+        return HTTPException(
+            status_code=502,
+            detail=f"Swagger service returned HTTP {status}. The spec may not be available at this URL.",
+        )
+    if isinstance(exc, SwaggerInvalidJsonError):
+        return HTTPException(
+            status_code=502,
+            detail="Swagger service returned invalid JSON. The spec may be malformed.",
+        )
+    # Fallback for any other SwaggerFetchError
+    return HTTPException(
+        status_code=502,
+        detail=f"Failed to fetch swagger spec: {exc}",
+    )
 
 
 @router.get("/{environment_id}", response_model=SwaggerSpecResponse)
@@ -34,17 +72,14 @@ async def get_swagger_spec(
         raise HTTPException(status_code=404, detail="Environment not found")
 
     try:
-        spec = await fetch_swagger_spec(db, env, swagger_type=type)
-    except Exception as e:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch swagger spec: {str(e)}",
-        )
+        result = await fetch_swagger_spec(db, env, swagger_type=type)
+    except SwaggerFetchError as e:
+        raise _swagger_error_to_http(e)
 
     return SwaggerSpecResponse(
-        spec=spec,
-        fetched_at="now",  # Will be improved with actual cache timestamp
-        source="cache_or_remote",
+        spec=result.spec,
+        fetched_at=result.fetched_at.isoformat(),
+        source=result.source,
     )
 
 
@@ -65,14 +100,11 @@ async def get_endpoints(
         raise HTTPException(status_code=404, detail="Environment not found")
 
     try:
-        spec = await fetch_swagger_spec(db, env, swagger_type=type)
-    except Exception as e:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch swagger spec: {str(e)}",
-        )
+        result = await fetch_swagger_spec(db, env, swagger_type=type)
+    except SwaggerFetchError as e:
+        raise _swagger_error_to_http(e)
 
-    return parse_endpoints(spec)
+    return parse_endpoints(result.spec)
 
 
 @router.post("/{environment_id}/refresh", response_model=SwaggerSpecResponse)
@@ -89,15 +121,12 @@ async def refresh_swagger_spec(
         raise HTTPException(status_code=404, detail="Environment not found")
 
     try:
-        spec = await fetch_swagger_spec(db, env, swagger_type=type, force_refresh=True)
-    except Exception as e:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch swagger spec: {str(e)}",
-        )
+        result = await fetch_swagger_spec(db, env, swagger_type=type, force_refresh=True)
+    except SwaggerFetchError as e:
+        raise _swagger_error_to_http(e)
 
     return SwaggerSpecResponse(
-        spec=spec,
-        fetched_at="now",
-        source="remote",
+        spec=result.spec,
+        fetched_at=result.fetched_at.isoformat(),
+        source=result.source,
     )

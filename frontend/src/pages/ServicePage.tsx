@@ -8,6 +8,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { servicesApi, swaggerApi } from "@swagger-aggregator/shared";
 import type { Environment, EndpointInfo, SwaggerType } from "@swagger-aggregator/shared";
+import ConfirmDialog from "../components/ConfirmDialog";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 export default function ServicePage() {
   const { serviceId } = useParams<{ serviceId: string }>();
@@ -20,6 +22,15 @@ export default function ServicePage() {
   const [newEnvName, setNewEnvName] = useState("");
   const [newEnvUrl, setNewEnvUrl] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
+  // Tracks which endpoint is expanded (by operation_id or method+path fallback)
+  const [expandedEndpointKey, setExpandedEndpointKey] = useState<string | null>(null);
+  // Confirm dialog state for delete actions
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   // Fetch service details
   const { data: service } = useQuery({
@@ -60,6 +71,18 @@ export default function ServicePage() {
     onSuccess: () => navigate("/"),
   });
 
+  // Delete environment mutation
+  const deleteEnv = useMutation({
+    mutationFn: (envId: string) => servicesApi.deleteEnvironment(envId),
+    onSuccess: (_, envId) => {
+      queryClient.invalidateQueries({ queryKey: ["environments", serviceId] });
+      // Reset selected env if we deleted the currently selected one
+      if (selectedEnvId === envId) {
+        setSelectedEnvId(null);
+      }
+    },
+  });
+
   // Filter endpoints by search term
   const filteredEndpoints = endpoints?.filter(
     (ep: EndpointInfo) =>
@@ -80,6 +103,20 @@ export default function ServicePage() {
     return colors[method] || "bg-gray-100 text-gray-800";
   };
 
+  // Unique key for endpoint (operation_id preferred, fallback to method+path)
+  const endpointKey = (ep: EndpointInfo, idx: number) =>
+    ep.operation_id || `${ep.method}-${ep.path}-${idx}`;
+
+  // Safely stringify for JSON display
+  const formatJson = (obj: unknown) => {
+    if (obj == null) return "null";
+    try {
+      return JSON.stringify(obj, null, 2);
+    } catch {
+      return String(obj);
+    }
+  };
+
   return (
     <div>
       {/* Service header */}
@@ -97,11 +134,17 @@ export default function ServicePage() {
           )}
         </div>
         <button
-          onClick={() => {
-            if (confirm("Delete this service and all its environments?")) {
-              deleteService.mutate();
-            }
-          }}
+          onClick={() =>
+            setConfirmDialog({
+              isOpen: true,
+              title: "Delete Service",
+              message: "This will delete the service and all its environments. This cannot be undone.",
+              onConfirm: () => {
+                deleteService.mutate();
+                setConfirmDialog((d) => ({ ...d, isOpen: false }));
+              },
+            })
+          }
           className="px-3 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
         >
           Delete Service
@@ -160,23 +203,51 @@ export default function ServicePage() {
           </form>
         )}
 
-        {/* Environment tabs */}
+        {/* Environment tabs with delete button */}
         <div className="flex gap-2 flex-wrap">
           {environments?.map((env: Environment) => (
-            <button
+            <div
               key={env.id}
-              onClick={() => setSelectedEnvId(env.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`inline-flex items-center gap-1 rounded-lg text-sm font-medium transition-colors ${
                 selectedEnvId === env.id
                   ? "bg-blue-600 text-white"
                   : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
               }`}
             >
-              {env.name}
-              <span className="ml-2 text-xs opacity-70">
-                {env.base_url.replace(/https?:\/\//, "").split("/")[0]}
-              </span>
-            </button>
+              <button
+                onClick={() => setSelectedEnvId(env.id)}
+                className="px-4 py-2 rounded-l-lg"
+              >
+                {env.name}
+                <span className="ml-2 text-xs opacity-70">
+                  {env.base_url.replace(/https?:\/\//, "").split("/")[0]}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirmDialog({
+                    isOpen: true,
+                    title: "Delete Environment",
+                    message: `Delete environment "${env.name}"? All cached specs and secrets for this environment will be removed.`,
+                    onConfirm: () => {
+                      deleteEnv.mutate(env.id);
+                      setConfirmDialog((d) => ({ ...d, isOpen: false }));
+                    },
+                  });
+                }}
+                className={`p-2 rounded-r-lg hover:bg-red-500/20 transition-colors ${
+                  selectedEnvId === env.id ? "text-white hover:text-red-200" : "text-gray-500 hover:text-red-600"
+                }`}
+                title="Delete environment"
+                aria-label={`Delete ${env.name}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           ))}
           {(!environments || environments.length === 0) && (
             <p className="text-gray-400 text-sm py-2">
@@ -228,42 +299,118 @@ export default function ServicePage() {
       {selectedEnvId && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {loadingEndpoints ? (
-            <div className="p-8 text-center text-gray-500">
-              Loading endpoints...
-            </div>
+            <LoadingSpinner text="Loading endpoints..." />
           ) : filteredEndpoints && filteredEndpoints.length > 0 ? (
             <div className="divide-y divide-gray-100">
-              {filteredEndpoints.map((ep: EndpointInfo, idx: number) => (
-                <div key={idx} className="p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-bold ${methodColor(ep.method)}`}
+              {filteredEndpoints.map((ep: EndpointInfo, idx: number) => {
+                const key = endpointKey(ep, idx);
+                const isExpanded = expandedEndpointKey === key;
+
+                return (
+                  <div key={key}>
+                    {/* Endpoint header — click to expand/collapse */}
+                    <button
+                      onClick={() => setExpandedEndpointKey(isExpanded ? null : key)}
+                      className="w-full p-4 hover:bg-gray-50 transition-colors text-left"
                     >
-                      {ep.method}
-                    </span>
-                    <span className="font-mono text-sm text-gray-800">
-                      {ep.path}
-                    </span>
-                  </div>
-                  {ep.summary && (
-                    <p className="text-sm text-gray-500 mt-1 ml-16">
-                      {ep.summary}
-                    </p>
-                  )}
-                  {ep.tags.length > 0 && (
-                    <div className="flex gap-1 mt-2 ml-16">
-                      {ep.tags.map((tag: string) => (
+                      <div className="flex items-center gap-3">
                         <span
-                          key={tag}
-                          className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full"
+                          className={`px-2 py-1 rounded text-xs font-bold shrink-0 ${methodColor(ep.method)}`}
                         >
-                          {tag}
+                          {ep.method}
                         </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                        <span className="font-mono text-sm text-gray-800">
+                          {ep.path}
+                        </span>
+                        {/* Expand/collapse indicator */}
+                        <span className="ml-auto text-gray-400 text-xs">
+                          {isExpanded ? "▲" : "▼"}
+                        </span>
+                      </div>
+                      {ep.summary && (
+                        <p className="text-sm text-gray-500 mt-1 ml-16">
+                          {ep.summary}
+                        </p>
+                      )}
+                      {ep.tags.length > 0 && (
+                        <div className="flex gap-1 mt-2 ml-16">
+                          {ep.tags.map((tag: string) => (
+                            <span
+                              key={tag}
+                              className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Expanded detail panel */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 ml-16 space-y-3 border-t border-gray-50">
+                        {/* Full description */}
+                        {ep.description && (
+                          <div className="pt-3">
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Description</h4>
+                            <p className="text-sm text-gray-700">{ep.description}</p>
+                          </div>
+                        )}
+
+                        {/* Parameters table */}
+                        {ep.parameters.length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Parameters</h4>
+                            <div className="bg-gray-50 rounded-lg overflow-hidden text-xs">
+                              <div className="grid grid-cols-4 gap-2 p-2 font-semibold text-gray-600 border-b border-gray-200">
+                                <span>Name</span><span>In</span><span>Type</span><span>Required</span>
+                              </div>
+                              {ep.parameters.map((param: Record<string, unknown>, pIdx: number) => (
+                                <div key={pIdx} className="grid grid-cols-4 gap-2 p-2 border-b border-gray-100 last:border-0">
+                                  <span className="font-mono text-gray-800">{String(param.name || "")}</span>
+                                  <span className="text-gray-500">{String(param.in || "")}</span>
+                                  <span className="text-gray-500">{String((param.schema as Record<string, unknown>)?.type || param.type || "")}</span>
+                                  <span>{param.required ? "Yes" : "No"}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Request body */}
+                        {ep.request_body && (
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Request Body</h4>
+                            <pre className="bg-gray-50 rounded-lg p-3 text-xs overflow-auto max-h-48 font-mono">
+                              {formatJson(ep.request_body)}
+                            </pre>
+                          </div>
+                        )}
+
+                        {/* Responses */}
+                        {Object.keys(ep.responses).length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Responses</h4>
+                            <div className="space-y-1">
+                              {Object.entries(ep.responses).map(([code, detail]) => (
+                                <div key={code} className="bg-gray-50 rounded-lg p-2 text-xs">
+                                  <span className="font-semibold text-gray-700">{code}</span>
+                                  {" — "}
+                                  <span className="text-gray-500">
+                                    {(detail as Record<string, unknown>)?.description
+                                      ? String((detail as Record<string, unknown>).description)
+                                      : "No description"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="p-8 text-center text-gray-500">
@@ -274,6 +421,17 @@ export default function ServicePage() {
           )}
         </div>
       )}
+
+      {/* Confirm dialog for delete actions */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((d) => ({ ...d, isOpen: false }))}
+        confirmText="Delete"
+        isDestructive
+      />
     </div>
   );
 }

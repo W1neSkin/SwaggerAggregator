@@ -27,31 +27,20 @@ export default function ExecutePanel({
     p.replace(/[{}]/g, "")
   );
 
-  // Pre-fill path params from swagger examples/defaults
-  const getParamExample = (name: string): string => {
-    const param = endpoint.parameters.find((p) => p.name === name);
-    if (!param) return "";
-    const schema = param.schema as Record<string, unknown> | undefined;
-    const example = param.example ?? schema?.example ?? schema?.default ?? "";
-    return example !== "" ? String(example) : "";
-  };
-
-  // Pre-fill query params from swagger spec
+  // Init query param fields from swagger spec (names only, no default values)
   const initQueryParams = (): Record<string, string> => {
     const params: Record<string, string> = {};
     for (const p of endpoint.parameters) {
       if (p.in === "query") {
-        const schema = p.schema as Record<string, unknown> | undefined;
-        const example = p.example ?? schema?.example ?? schema?.default ?? "";
-        params[String(p.name)] = example !== "" && example != null ? String(example) : "";
+        params[String(p.name)] = "";
       }
     }
     return params;
   };
 
-  // State for inputs
+  // State for inputs — all fields start empty, user fills them manually
   const [pathParams, setPathParams] = useState<Record<string, string>>(
-    Object.fromEntries(pathParamNames.map((n) => [n, getParamExample(n)]))
+    Object.fromEntries(pathParamNames.map((n) => [n, ""]))
   );
   const [queryParams, setQueryParams] = useState<Record<string, string>>(initQueryParams());
   const [bodyText, setBodyText] = useState(

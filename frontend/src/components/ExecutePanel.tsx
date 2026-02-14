@@ -26,11 +26,33 @@ export default function ExecutePanel({
     p.replace(/[{}]/g, "")
   );
 
+  // Pre-fill path params from swagger examples/defaults
+  const getParamExample = (name: string): string => {
+    const param = endpoint.parameters.find((p) => p.name === name);
+    if (!param) return "";
+    const schema = param.schema as Record<string, unknown> | undefined;
+    const example = param.example ?? schema?.example ?? schema?.default ?? "";
+    return example !== "" ? String(example) : "";
+  };
+
+  // Pre-fill query params from swagger spec
+  const initQueryParams = (): Record<string, string> => {
+    const params: Record<string, string> = {};
+    for (const p of endpoint.parameters) {
+      if (p.in === "query") {
+        const schema = p.schema as Record<string, unknown> | undefined;
+        const example = p.example ?? schema?.example ?? schema?.default ?? "";
+        params[String(p.name)] = example !== "" && example != null ? String(example) : "";
+      }
+    }
+    return params;
+  };
+
   // State for inputs
   const [pathParams, setPathParams] = useState<Record<string, string>>(
-    Object.fromEntries(pathParamNames.map((n) => [n, ""]))
+    Object.fromEntries(pathParamNames.map((n) => [n, getParamExample(n)]))
   );
-  const [queryParams, setQueryParams] = useState<Record<string, string>>({});
+  const [queryParams, setQueryParams] = useState<Record<string, string>>(initQueryParams());
   const [bodyText, setBodyText] = useState(
     endpoint.request_body ? JSON.stringify(getRequestBodyExample(endpoint.request_body), null, 2) : ""
   );

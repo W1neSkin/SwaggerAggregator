@@ -368,17 +368,24 @@ export default function ServicePage() {
                           <div>
                             <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Parameters</h4>
                             <div className="bg-gray-50 rounded-lg overflow-hidden text-xs">
-                              <div className="grid grid-cols-4 gap-2 p-2 font-semibold text-gray-600 border-b border-gray-200">
-                                <span>Name</span><span>In</span><span>Type</span><span>Required</span>
+                              <div className="grid grid-cols-6 gap-2 p-2 font-semibold text-gray-600 border-b border-gray-200">
+                                <span>Name</span><span>In</span><span>Type</span><span>Required</span><span>Description</span><span>Example</span>
                               </div>
-                              {ep.parameters.map((param: Record<string, unknown>, pIdx: number) => (
-                                <div key={pIdx} className="grid grid-cols-4 gap-2 p-2 border-b border-gray-100 last:border-0">
-                                  <span className="font-mono text-gray-800">{String(param.name || "")}</span>
-                                  <span className="text-gray-500">{String(param.in || "")}</span>
-                                  <span className="text-gray-500">{String((param.schema as Record<string, unknown>)?.type || param.type || "")}</span>
-                                  <span>{param.required ? "Yes" : "No"}</span>
-                                </div>
-                              ))}
+                              {ep.parameters.map((param: Record<string, unknown>, pIdx: number) => {
+                                const schema = param.schema as Record<string, unknown> | undefined;
+                                const example = param.example ?? schema?.example ?? schema?.default ?? "";
+                                const description = param.description ?? "";
+                                return (
+                                  <div key={pIdx} className="grid grid-cols-6 gap-2 p-2 border-b border-gray-100 last:border-0">
+                                    <span className="font-mono text-gray-800">{String(param.name || "")}</span>
+                                    <span className="text-gray-500">{String(param.in || "")}</span>
+                                    <span className="text-gray-500">{String(schema?.type || param.type || "")}</span>
+                                    <span>{param.required ? "Yes" : "No"}</span>
+                                    <span className="text-gray-500 truncate" title={String(description)}>{String(description)}</span>
+                                    <span className="font-mono text-blue-600 truncate" title={String(example)}>{example !== "" ? String(example) : "—"}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}

@@ -8,10 +8,13 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
+# Fix for Neon/cloud PostgreSQL: asyncpg uses "ssl" not "sslmode"
+db_url = settings.DATABASE_URL.replace("sslmode=", "ssl=")
+
 # Create async engine
 # echo=True for development SQL logging (set to False in production)
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    db_url,
     echo=False,
     pool_pre_ping=True,  # Verify connections before using them
 )

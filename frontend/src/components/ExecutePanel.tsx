@@ -211,6 +211,7 @@ export default function ExecutePanel({
                 <label className="text-xs text-gray-500">{name}</label>
                 <input
                   type="text"
+                  autoComplete="off"
                   value={pathParams[name] || ""}
                   onChange={(e) => setPathParams({ ...pathParams, [name]: e.target.value })}
                   placeholder={name}
@@ -240,6 +241,7 @@ export default function ExecutePanel({
           <div key={idx} className="flex gap-2 mb-1">
             <input
               type="text"
+              autoComplete="off"
               value={key}
               onChange={(e) => {
                 const newParams = { ...queryParams };
@@ -252,6 +254,7 @@ export default function ExecutePanel({
             />
             <input
               type="text"
+              autoComplete="off"
               value={value}
               onChange={(e) => setQueryParams({ ...queryParams, [key]: e.target.value })}
               placeholder="value"

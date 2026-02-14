@@ -39,7 +39,7 @@ export default function ExplorerPage() {
         ) : selection.type === "service" ? (
           <ServiceDetail service={selection.service} onSelect={handleSelect} />
         ) : selection.type === "environment" ? (
-          <EnvironmentDetail env={selection.env} serviceId={selection.serviceId} onSelect={handleSelect} />
+          <EnvironmentDetail env={selection.env} onSelect={handleSelect} />
         ) : (
           <EndpointDetail
             endpoint={selection.endpoint}
@@ -159,7 +159,7 @@ function EnvironmentCard({ env, serviceId, onSelect }: { env: Environment; servi
 
 // ─── ENVIRONMENT DETAIL ───────────────────────────────────────────────────────
 
-function EnvironmentDetail({ env, serviceId, onSelect }: { env: Environment; serviceId: string; onSelect: (sel: TreeSelection) => void }) {
+function EnvironmentDetail({ env, onSelect }: { env: Environment; onSelect: (sel: TreeSelection) => void }) {
   const queryClient = useQueryClient();
 
   // Secrets management state

@@ -291,7 +291,6 @@ function ServiceNode({ service, isExpanded, onToggle, onSelectService, onSelect,
             <EnvironmentNode
               key={env.id}
               env={env}
-              serviceId={service.id}
               isExpanded={expandedEnvs.has(env.id)}
               onToggle={() => toggleEnv(env.id)}
               onSelectEnv={() => onSelect({ type: "environment", env, serviceId: service.id })}
@@ -338,7 +337,6 @@ function ServiceNode({ service, isExpanded, onToggle, onSelectService, onSelect,
 
 interface EnvironmentNodeProps {
   env: Environment;
-  serviceId: string;
   isExpanded: boolean;
   onToggle: () => void;
   onSelectEnv: () => void;
@@ -348,7 +346,7 @@ interface EnvironmentNodeProps {
   onDelete: () => void;
 }
 
-function EnvironmentNode({ env, serviceId, isExpanded, onToggle, onSelectEnv, onSelect, selectedKey, searchFilter, onDelete }: EnvironmentNodeProps) {
+function EnvironmentNode({ env, isExpanded, onToggle, onSelectEnv, onSelect, selectedKey, searchFilter, onDelete }: EnvironmentNodeProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const toggleGroup = (type: string) => {

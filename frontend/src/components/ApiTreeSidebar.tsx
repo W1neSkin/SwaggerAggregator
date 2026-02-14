@@ -428,20 +428,23 @@ interface SwaggerGroupNodeProps {
 }
 
 function SwaggerGroupNode({ envId, baseUrl, type, label, isExpanded, onToggle, onSelect, selectedKey, searchFilter }: SwaggerGroupNodeProps) {
+  const queryClient = useQueryClient();
+
   // Lazy fetch endpoints only when this group is expanded
-  const { data: endpoints, isLoading } = useQuery({
+  const { data: endpoints, isLoading, isError, error } = useQuery({
     queryKey: ["endpoints", envId, type],
     queryFn: () => swaggerApi.getEndpoints(envId, type),
     enabled: isExpanded,
+    retry: 1, // Retry once on failure before showing error
   });
 
-  // Apply search filter to endpoints
+  // Apply search filter to endpoints (guard against null/undefined fields)
   const filtered = endpoints?.filter(
     (ep: EndpointInfo) =>
       !searchFilter ||
-      ep.path.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      ep.summary.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      ep.method.toLowerCase().includes(searchFilter.toLowerCase())
+      (ep.path || "").toLowerCase().includes(searchFilter.toLowerCase()) ||
+      (ep.summary || "").toLowerCase().includes(searchFilter.toLowerCase()) ||
+      (ep.method || "").toLowerCase().includes(searchFilter.toLowerCase())
   );
 
   return (
@@ -456,9 +459,13 @@ function SwaggerGroupNode({ envId, baseUrl, type, label, isExpanded, onToggle, o
         <span className={`text-[11px] font-medium ${type === "admin" ? "text-amber-700" : "text-blue-700"}`}>
           {label}
         </span>
-        {/* Endpoint count badge */}
-        {isExpanded && filtered && (
+        {/* Endpoint count badge — only show when data loaded successfully */}
+        {isExpanded && !isLoading && !isError && filtered && (
           <span className="text-[9px] text-gray-400 ml-auto">{filtered.length}</span>
+        )}
+        {/* Error indicator icon */}
+        {isExpanded && isError && (
+          <span className="text-[9px] text-red-400 ml-auto" title="Failed to load">!</span>
         )}
       </button>
 
@@ -468,6 +475,23 @@ function SwaggerGroupNode({ envId, baseUrl, type, label, isExpanded, onToggle, o
           {isLoading ? (
             <div className="px-3 py-1 space-y-1">
               {[1, 2, 3].map((i) => <div key={i} className="h-5 skeleton rounded" />)}
+            </div>
+          ) : isError ? (
+            /* Error state: swagger fetch failed (502, 504, connection refused, etc.) */
+            <div className="px-3 py-1.5">
+              <p className="text-[10px] text-red-500">
+                {(error as Error)?.message?.includes("502")
+                  ? "Service unreachable"
+                  : (error as Error)?.message?.includes("504")
+                    ? "Request timed out"
+                    : "Failed to load endpoints"}
+              </p>
+              <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["endpoints", envId, type] })}
+                className="text-[10px] text-blue-500 hover:underline mt-0.5"
+              >
+                Retry
+              </button>
             </div>
           ) : filtered && filtered.length > 0 ? (
             filtered.map((ep: EndpointInfo, idx: number) => {
@@ -494,7 +518,8 @@ function SwaggerGroupNode({ envId, baseUrl, type, label, isExpanded, onToggle, o
             })
           ) : (
             <p className="px-3 py-1 text-[10px] text-gray-400">
-              {endpoints?.length === 0 ? "No endpoints" : "No match"}
+              {/* Show "No match" only when a search filter is active; otherwise "No endpoints" */}
+              {searchFilter ? "No match" : "No endpoints"}
             </p>
           )}
         </div>

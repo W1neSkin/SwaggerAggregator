@@ -23,6 +23,19 @@ export function makeEndpointKey(envId: string, type: SwaggerType, ep: EndpointIn
   return `${envId}:${type}:${ep.operation_id || `${ep.method}:${ep.path}:${idx}`}`;
 }
 
+/**
+ * Build the base URL for admin endpoints.
+ * Admin swagger path (e.g. "/admin/openapi.json") tells us the mount prefix ("/admin").
+ * We strip the filename to get the prefix and append it to base_url.
+ */
+function adminBaseUrl(env: Environment): string {
+  const adminPath = env.admin_swagger_path || "/admin/openapi.json";
+  // Remove the last segment (the spec filename) to get the mount prefix
+  const prefix = adminPath.replace(/\/[^/]+$/, ""); // "/admin/openapi.json" → "/admin"
+  const base = env.base_url.replace(/\/+$/, "");
+  return prefix ? `${base}${prefix}` : base;
+}
+
 /** Union type for all possible selections from the tree */
 export type TreeSelection =
   | { type: "service"; service: Service }
@@ -398,7 +411,7 @@ function EnvironmentNode({ env, isExpanded, onToggle, onSelectEnv, onSelect, sel
           />
           <SwaggerGroupNode
             envId={env.id}
-            baseUrl={env.base_url}
+            baseUrl={adminBaseUrl(env)}
             type="admin"
             label="Admin API"
             isExpanded={expandedGroups.has("admin")}

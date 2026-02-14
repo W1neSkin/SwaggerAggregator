@@ -10,7 +10,7 @@ Step-by-step instructions to deploy Swagger Aggregator to free cloud platforms.
 |-----------|----------|-----------|
 | Database  | Neon.tech | 0.5 GB storage, auto-suspend |
 | Backend   | Render.com | 750 hours/month, auto-sleep after 15 min |
-| Frontend  | Vercel | 100 GB bandwidth/month |
+| Frontend  | Netlify | 100 GB bandwidth, 300 build min/month |
 | Mobile    | EAS Build (Expo) | 30 builds/month |
 
 ---
@@ -45,7 +45,7 @@ Save this URL — you'll need it for the backend deployment.
 | `DATABASE_URL` | Your Neon connection string (with `postgresql+asyncpg://`) |
 | `SECRET_KEY` | Run `openssl rand -hex 32` and paste the result |
 | `MASTER_ENCRYPTION_KEY` | Run `openssl rand -hex 32` and paste the result |
-| `CORS_ORIGINS` | Your Vercel URL (e.g. `https://swagger-aggregator.vercel.app`) |
+| `CORS_ORIGINS` | Your Netlify URL (e.g. `https://swagger-aggregator.netlify.app`) |
 
 ### Option B: Manual setup
 
@@ -75,30 +75,29 @@ curl https://swagger-aggregator-api.onrender.com/api/health
 
 ---
 
-## 3. Frontend: Vercel
+## 3. Frontend: Netlify
 
-1. Go to [https://vercel.com](https://vercel.com) and sign up with GitHub.
-2. Click **"Add New..." > "Project"**.
-3. Import the `W1neSkin/SwaggerAggregator` repository.
-4. Configure:
-   - **Framework Preset**: Vite
-   - **Root Directory**: `frontend`
-   - **Build Command**: `cd .. && npm install && npm run build --workspace=frontend`
-   - **Output Directory**: `dist`
-   - **Install Command**: `cd .. && npm install`
-5. Add environment variable:
+1. Go to [https://app.netlify.com](https://app.netlify.com) and sign up with GitHub (no phone verification needed).
+2. Click **"Add new site" > "Import an existing project"**.
+3. Connect GitHub and select the `W1neSkin/SwaggerAggregator` repository.
+4. Configure build settings:
+   - **Base directory**: (leave empty — `netlify.toml` handles it)
+   - **Build command**: `npm install && npm run build --workspace=frontend`
+   - **Publish directory**: `frontend/dist`
+5. Click **"Show advanced"** > **"New variable"** and add:
 
 | Variable | Value |
 |----------|-------|
 | `VITE_API_URL` | Your Render backend URL (e.g. `https://swagger-aggregator-api.onrender.com`) |
 
-6. Click **"Deploy"**.
+6. Click **"Deploy site"**.
 
-After deployment, note the URL (e.g. `https://swagger-aggregator.vercel.app`).
+After deployment, note the URL (e.g. `https://swagger-aggregator.netlify.app`).
+You can set a custom site name in **Site configuration > Site details > Change site name**.
 
 ### Update CORS on Render
 
-Go back to Render dashboard and update `CORS_ORIGINS` to include your Vercel URL.
+Go back to Render dashboard and update `CORS_ORIGINS` to include your Netlify URL.
 
 ---
 
@@ -154,7 +153,7 @@ CI runs automatically on push to `master` and on pull requests. It checks:
 - **Frontend**: TypeScript compilation + Vite build
 - **Mobile**: TypeScript type check
 
-Render and Vercel auto-deploy from GitHub on push to `master` — no extra CI steps needed.
+Render and Netlify auto-deploy from GitHub on push to `master` — no extra CI steps needed.
 
 ---
 
@@ -200,8 +199,8 @@ docker compose up --build
 - Verify Neon project is not suspended.
 
 ### Frontend can't reach backend
-- Check `VITE_API_URL` is set correctly in Vercel env vars.
-- Check `CORS_ORIGINS` on Render includes your Vercel URL.
+- Check `VITE_API_URL` is set correctly in Netlify env vars.
+- Check `CORS_ORIGINS` on Render includes your Netlify URL.
 - Remember: Render free tier sleeps after 15 min — first request may take 30s.
 
 ### Mobile can't connect

@@ -1,0 +1,17 @@
+# Netlify build configuration for the frontend.
+# Netlify needs to build from the repo root (npm workspaces),
+# then serve the frontend/dist folder.
+
+[build]
+  # Base directory: repo root (needed for npm workspaces + shared package)
+  base = "/"
+  # Build command: install all workspaces, then build frontend
+  command = "npm install && npm run build --workspace=frontend"
+  # Output directory (relative to base)
+  publish = "frontend/dist"
+
+# SPA routing: redirect all paths to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -80,7 +80,7 @@ export default function Layout() {
   const { data: user } = useCurrentUser();
   const logout = useLogout();
   const navigate = useNavigate();
-  const { mode, isDark, toggle } = useTheme();
+  const { mode, toggle } = useTheme();
 
   const handleLogout = () => {
     logout.mutate(undefined, {

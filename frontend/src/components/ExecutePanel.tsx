@@ -182,18 +182,18 @@ export default function ExecutePanel({
   };
 
   return (
-    <div className="mt-3 border border-blue-200 rounded-lg bg-blue-50/30 p-4 space-y-3">
-      <h4 className="text-xs font-bold text-blue-700 uppercase">Execute Request</h4>
+    <div className="mt-3 border border-blue-200 dark:border-blue-900 rounded-lg bg-blue-50/30 dark:bg-blue-950/30 p-4 space-y-3">
+      <h4 className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">Execute Request</h4>
 
       {/* URL preview */}
-      <div className="text-xs font-mono bg-white rounded px-3 py-2 border border-gray-200 text-gray-700 break-all">
+      <div className="text-xs font-mono bg-white dark:bg-slate-800 rounded px-3 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 break-all">
         {endpoint.method.toUpperCase()} {buildUrl()}
       </div>
 
       {/* Path parameters */}
       {pathParamNames.length > 0 && (
         <div>
-          <label className="text-xs font-semibold text-gray-600 block mb-1">Path Parameters</label>
+          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 block mb-1">Path Parameters</label>
           <div className="grid grid-cols-2 gap-2">
             {pathParamNames.map((name) => (
               <div key={name}>
@@ -216,7 +216,7 @@ export default function ExecutePanel({
       {/* Query parameters */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-xs font-semibold text-gray-600">Query Parameters</label>
+          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Query Parameters</label>
           <button
             type="button"
             onClick={() =>
@@ -270,7 +270,7 @@ export default function ExecutePanel({
       {/* Request body (for POST/PUT/PATCH) */}
       {["POST", "PUT", "PATCH"].includes(endpoint.method.toUpperCase()) && (
         <div>
-          <label className="text-xs font-semibold text-gray-600 block mb-1">Request Body (JSON)</label>
+          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 block mb-1">Request Body (JSON)</label>
           <textarea
             value={bodyText}
             onChange={(e) => setBodyText(e.target.value)}
@@ -283,14 +283,14 @@ export default function ExecutePanel({
 
       {/* Auth section */}
       <div>
-        <label className="text-xs font-semibold text-gray-600 block mb-1">Authentication</label>
-        <div className="flex gap-1 bg-gray-100 rounded p-0.5 mb-2">
+        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 block mb-1">Authentication</label>
+        <div className="flex gap-1 bg-gray-100 dark:bg-slate-700 rounded p-0.5 mb-2">
           {(["jwt", "admin", "none"] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setAuthMode(mode)}
               className={`flex-1 py-1 rounded text-xs font-medium transition-colors ${
-                authMode === mode ? "bg-white shadow-sm text-gray-900" : "text-gray-500"
+                authMode === mode ? "bg-white dark:bg-slate-600 shadow-sm text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"
               }`}
             >
               {mode === "jwt" ? "JWT Token" : mode === "admin" ? "Admin Password" : "No Auth"}
@@ -333,8 +333,8 @@ export default function ExecutePanel({
 
             {/* Inline JWT generator */}
             {showJwtGen && (
-              <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Quick JWT Generator</p>
+              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quick JWT Generator</p>
 
                 {/* User ID */}
                 <input
@@ -346,13 +346,13 @@ export default function ExecutePanel({
                 />
 
                 {/* Secret mode toggle */}
-                <div className="flex gap-1 bg-gray-100 rounded p-0.5">
+                <div className="flex gap-1 bg-gray-100 dark:bg-slate-700 rounded p-0.5">
                   {(["stored", "manual"] as const).map((m) => (
                     <button
                       key={m}
                       onClick={() => setJwtSecretMode(m)}
                       className={`flex-1 py-1 rounded text-[11px] font-medium transition-colors ${
-                        jwtSecretMode === m ? "bg-white shadow-sm text-gray-900" : "text-gray-500"
+                        jwtSecretMode === m ? "bg-white dark:bg-slate-600 shadow-sm text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       {m === "stored" ? "Stored Secret" : "Enter Manually"}
@@ -428,7 +428,7 @@ export default function ExecutePanel({
 
       {/* Custom headers */}
       <div>
-        <label className="text-xs font-semibold text-gray-600 block mb-1">
+        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 block mb-1">
           Custom Headers (JSON, optional)
         </label>
         <input
@@ -458,9 +458,9 @@ export default function ExecutePanel({
 
       {/* Response */}
       {response && (
-        <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-800 overflow-hidden">
           {/* Status bar */}
-          <div className="flex items-center gap-3 px-3 py-2 border-b border-gray-100">
+          <div className="flex items-center gap-3 px-3 py-2 border-b border-gray-100 dark:border-gray-700">
             <span className={`px-2 py-0.5 rounded text-xs font-bold ${statusColor(response.status_code)}`}>
               {response.status_code}
             </span>
@@ -468,12 +468,12 @@ export default function ExecutePanel({
           </div>
           {/* Debug: show actual URL that proxy called */}
           {response.request_url && (
-            <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50">
+            <div className="px-3 py-1.5 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-slate-900">
               <span className="text-[10px] text-gray-400 font-mono break-all">{response.request_url}</span>
             </div>
           )}
           {/* Response body */}
-          <pre className="p-3 text-xs font-mono overflow-auto max-h-80 text-gray-800 whitespace-pre-wrap">
+          <pre className="p-3 text-xs font-mono overflow-auto max-h-80 text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
             {formatBody(response.body)}
           </pre>
         </div>

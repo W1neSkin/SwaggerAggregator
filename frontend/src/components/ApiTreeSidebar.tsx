@@ -105,9 +105,9 @@ export default function ApiTreeSidebar({ onSelect, selectedKey }: ApiTreeSidebar
   };
 
   return (
-    <div className="w-72 shrink-0 flex flex-col bg-white border-r border-gray-100 h-full">
+    <div className="w-72 shrink-0 flex flex-col bg-white dark:bg-slate-900 border-r border-gray-100 dark:border-gray-800 h-full">
       {/* Search */}
-      <div className="p-3 border-b border-gray-100">
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="relative">
           <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -117,7 +117,7 @@ export default function ApiTreeSidebar({ onSelect, selectedKey }: ApiTreeSidebar
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             placeholder="Search endpoints..."
-            className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-200 dark:placeholder-gray-500"
           />
         </div>
       </div>
@@ -157,7 +157,7 @@ export default function ApiTreeSidebar({ onSelect, selectedKey }: ApiTreeSidebar
       </div>
 
       {/* Add service section */}
-      <div className="border-t border-gray-100 p-2">
+      <div className="border-t border-gray-100 dark:border-gray-800 p-2">
         {showAddService ? (
           <form
             onSubmit={(e) => { e.preventDefault(); createService.mutate({ name: newServiceName, description: newServiceDesc }); }}
@@ -266,9 +266,9 @@ function ServiceNode({ service, isExpanded, onToggle, onSelectService, onSelect,
   return (
     <div>
       {/* Service row — chevron toggles, label selects + expands */}
-      <div className={`group flex items-center pr-1 ${selectedKey === `svc:${service.id}` ? "bg-blue-50" : ""}`}>
+      <div className={`group flex items-center pr-1 ${selectedKey === `svc:${service.id}` ? "bg-blue-50 dark:bg-blue-950" : ""}`}>
         {/* Chevron: toggle only */}
-        <button onClick={onToggle} className="pl-3 py-2 pr-1 hover:bg-gray-50 transition-colors">
+        <button onClick={onToggle} className="pl-3 py-2 pr-1 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
           <svg className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -276,11 +276,11 @@ function ServiceNode({ service, isExpanded, onToggle, onSelectService, onSelect,
         </button>
         {/* Label: select service + expand */}
         <button onClick={() => { onSelectService(); if (!isExpanded) onToggle(); }}
-          className="flex-1 flex items-center gap-1.5 py-2 pr-1 text-left hover:bg-gray-50 transition-colors truncate">
+          className="flex-1 flex items-center gap-1.5 py-2 pr-1 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors truncate">
           <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
           </svg>
-          <span className="text-xs font-semibold text-gray-800 truncate">{service.name}</span>
+          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{service.name}</span>
         </button>
         {/* Action buttons (visible on hover) */}
         <button onClick={() => setShowAddEnv(true)} title="Add environment"
@@ -373,9 +373,9 @@ function EnvironmentNode({ env, isExpanded, onToggle, onSelectEnv, onSelect, sel
   return (
     <div>
       {/* Environment row — chevron toggles, label selects + expands */}
-      <div className={`group flex items-center pr-1 ${selectedKey === `env:${env.id}` ? "bg-blue-50" : ""}`}>
+      <div className={`group flex items-center pr-1 ${selectedKey === `env:${env.id}` ? "bg-blue-50 dark:bg-blue-950" : ""}`}>
         {/* Chevron: toggle only */}
-        <button onClick={onToggle} className="pl-3 py-1.5 pr-1 hover:bg-gray-50 transition-colors">
+        <button onClick={onToggle} className="pl-3 py-1.5 pr-1 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
           <svg className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -383,8 +383,8 @@ function EnvironmentNode({ env, isExpanded, onToggle, onSelectEnv, onSelect, sel
         </button>
         {/* Label: select environment + expand */}
         <button onClick={() => { onSelectEnv(); if (!isExpanded) onToggle(); }}
-          className="flex-1 flex items-center gap-1.5 py-1.5 pr-1 text-left hover:bg-gray-50 transition-colors truncate">
-          <span className="text-xs text-gray-600 truncate">{env.name}</span>
+          className="flex-1 flex items-center gap-1.5 py-1.5 pr-1 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors truncate">
+          <span className="text-xs text-gray-600 dark:text-gray-300 truncate">{env.name}</span>
           <span className="text-[9px] text-gray-400 truncate ml-auto">{env.base_url.replace(/https?:\/\//, "").split("/")[0]}</span>
         </button>
         <button onClick={onDelete} title="Delete environment"
@@ -468,7 +468,7 @@ function SwaggerGroupNode({ envId, baseUrl, type, label, isExpanded, onToggle, o
     <div>
       {/* Group header row */}
       <button onClick={onToggle}
-        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left hover:bg-gray-50 transition-colors">
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
         <svg className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -521,13 +521,13 @@ function SwaggerGroupNode({ envId, baseUrl, type, label, isExpanded, onToggle, o
                   key={key}
                   onClick={() => onSelect({ type: "endpoint", endpoint: ep, environmentId: envId, baseUrl, swaggerType: type })}
                   className={`w-full flex items-center gap-1.5 px-2 py-1 text-left rounded transition-all ${
-                    isSelected ? "bg-blue-50 ring-1 ring-blue-200" : "hover:bg-gray-50"
+                    isSelected ? "bg-blue-50 ring-1 ring-blue-200 dark:bg-blue-950 dark:ring-blue-800" : "hover:bg-gray-50 dark:hover:bg-gray-800"
                   }`}
                 >
                   <span className={`inline-flex px-1 py-0.5 rounded text-[9px] font-bold shrink-0 w-10 justify-center ${mc}`}>
                     {ep.method}
                   </span>
-                  <span className={`font-mono text-[11px] truncate ${isSelected ? "text-gray-900 font-medium" : "text-gray-600"}`}>
+                  <span className={`font-mono text-[11px] truncate ${isSelected ? "text-gray-900 dark:text-gray-100 font-medium" : "text-gray-600 dark:text-gray-400"}`}>
                     {ep.path}
                   </span>
                 </button>

@@ -1,52 +1,52 @@
 /**
  * Tab navigator layout.
  * Three tabs: Dashboard, JWT Generator, Settings.
+ * Uses @expo/vector-icons for proper tab icons (replaces emoji).
  */
 
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
-import { colors } from "../../lib/colors";
-
-/** Simple text-based tab icon */
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  return (
-    <Text style={{ fontSize: 20, color: focused ? colors.primary : colors.gray[400] }}>
-      {label}
-    </Text>
-  );
-}
+import { useTheme } from "../../lib/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.white },
-        headerTintColor: colors.gray[900],
+        headerStyle: { backgroundColor: colors.card },
+        headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: "600" },
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray[400],
-        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.gray[200] },
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Services",
-          tabBarIcon: ({ focused }) => <TabIcon label="📋" focused={focused} />,
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={focused ? "server" : "server-outline"} size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="jwt"
         options={{
           title: "JWT Generator",
-          tabBarIcon: ({ focused }) => <TabIcon label="🔑" focused={focused} />,
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={focused ? "key" : "key-outline"} size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ focused }) => <TabIcon label="⚙️" focused={focused} />,
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={focused ? "settings" : "settings-outline"} size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

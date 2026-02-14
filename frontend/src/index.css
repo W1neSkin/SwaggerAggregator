@@ -3,7 +3,10 @@
 
 @import "tailwindcss";
 
-/* Custom CSS variables for theming */
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Light theme (default) ─── */
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -27,6 +30,32 @@
   --radius: 0.75rem;
   --success: #22c55e;
   --warning: #f59e0b;
+}
+
+/* ─── Dark theme ─── */
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-light: #60a5fa;
+  --primary-foreground: #ffffff;
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f1f5f9;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #334155;
+  --input: #334155;
+  --ring: #3b82f6;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  color-scheme: dark;
 }
 
 /* Base styles */
@@ -62,7 +91,7 @@ html {
   border-radius: 4px;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — adapts to theme */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -71,11 +100,11 @@ html {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--muted-foreground);
 }
 
 /* Utility classes for HTTP methods */
@@ -119,9 +148,9 @@ button, a, input, select, textarea {
   100% { background-position: 0% 50%; }
 }
 
-/* Skeleton loading animation */
+/* Skeleton loading animation — adapts to theme */
 .skeleton {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, var(--muted) 25%, var(--border) 50%, var(--muted) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }

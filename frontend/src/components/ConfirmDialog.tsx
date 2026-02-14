@@ -32,14 +32,14 @@ export default function ConfirmDialog({
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
 
       {/* Dialog card */}
-      <div className="relative bg-white rounded-xl shadow-lg border border-gray-200 p-6 max-w-md w-full mx-4">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-500 mt-2">{message}</p>
+      <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 max-w-md w-full mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{message}</p>
 
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Cancel
           </button>

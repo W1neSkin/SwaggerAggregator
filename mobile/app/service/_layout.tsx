@@ -1,18 +1,20 @@
 /**
  * Service detail group layout.
- * Stack with back button support.
+ * Stack with back button support. Theme-aware.
  */
 
 import { Stack } from "expo-router";
-import { colors } from "../../lib/colors";
+import { useTheme } from "../../lib/ThemeContext";
 
 export default function ServiceLayout() {
+  const { colors } = useTheme();
+
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.white },
+        headerStyle: { backgroundColor: colors.card },
         headerTintColor: colors.primary,
-        headerTitleStyle: { fontWeight: "600", color: colors.gray[900] },
+        headerTitleStyle: { fontWeight: "600", color: colors.text },
       }}
     />
   );

@@ -1,53 +1,27 @@
 /**
- * Settings screen.
- * Manage secrets per environment + logout.
- * Storage is optional — user can enter secrets on-the-fly in JWT Generator.
+ * Settings screen — simplified.
+ * Theme toggle, app info, and logout.
+ * Secret management moved to service detail screen.
  */
 
-import { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   Alert,
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { servicesApi, secretsApi, authApi } from "@swagger-aggregator/shared";
-import type { Service, Environment } from "@swagger-aggregator/shared";
-import { colors } from "../../lib/colors";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { authApi } from "@swagger-aggregator/shared";
+import { useTheme, type ThemeMode } from "../../lib/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-
-  const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [selectedEnvId, setSelectedEnvId] = useState("");
-  const [jwtSecret, setJwtSecret] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-
-  // Fetch services
-  const { data: services } = useQuery({
-    queryKey: ["services"],
-    queryFn: () => servicesApi.listServices(),
-  });
-
-  // Fetch environments
-  const { data: environments } = useQuery({
-    queryKey: ["environments", selectedServiceId],
-    queryFn: () => servicesApi.listEnvironments(selectedServiceId),
-    enabled: !!selectedServiceId,
-  });
-
-  // Secret status
-  const { data: secretStatus } = useQuery({
-    queryKey: ["secretStatus", selectedEnvId],
-    queryFn: () => secretsApi.getSecretStatus(selectedEnvId),
-    enabled: !!selectedEnvId,
-  });
+  const { colors, mode, setMode, isDark } = useTheme();
 
   // Logout
   const logoutMutation = useMutation({
@@ -58,124 +32,71 @@ export default function SettingsScreen() {
     },
   });
 
-  const handleSave = async () => {
-    if (!selectedEnvId) {
-      Alert.alert("Error", "Please select an environment");
-      return;
-    }
-
-    const data: { jwt_secret?: string; admin_password?: string } = {};
-    if (jwtSecret.trim()) data.jwt_secret = jwtSecret;
-    if (adminPassword.trim()) data.admin_password = adminPassword;
-
-    if (Object.keys(data).length === 0) {
-      Alert.alert("Error", "Please enter at least one secret");
-      return;
-    }
-
-    try {
-      await secretsApi.saveSecrets(selectedEnvId, data);
-      Alert.alert("Success", "Secrets saved!");
-      setJwtSecret("");
-      setAdminPassword("");
-      queryClient.invalidateQueries({ queryKey: ["secretStatus", selectedEnvId] });
-    } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.detail || "Failed to save");
-    }
-  };
+  /** Theme options */
+  const themeOptions: { value: ThemeMode; label: string; icon: string }[] = [
+    { value: "light", label: "Light", icon: "sunny-outline" },
+    { value: "dark", label: "Dark", icon: "moon-outline" },
+    { value: "system", label: "System", icon: "phone-portrait-outline" },
+  ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Info banner */}
-      <View style={styles.infoBanner}>
-        <Text style={styles.infoText}>
-          Storing secrets is optional. You can save them for some environments
-          (e.g. local, dev) and enter manually for others (e.g. stage, prod).
-        </Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      {/* Theme section */}
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Appearance</Text>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.cardLabel, { color: colors.text }]}>Theme</Text>
+        <View style={[styles.themeRow, { backgroundColor: colors.toggleBg }]}>
+          {themeOptions.map((opt) => (
+            <TouchableOpacity
+              key={opt.value}
+              style={[
+                styles.themeBtn,
+                mode === opt.value && [styles.themeBtnActive, { backgroundColor: colors.toggleActive }],
+              ]}
+              onPress={() => setMode(opt.value)}
+            >
+              <Ionicons
+                name={opt.icon as any}
+                size={18}
+                color={mode === opt.value ? colors.primary : colors.textMuted}
+              />
+              <Text style={[
+                styles.themeBtnText,
+                { color: colors.textMuted },
+                mode === opt.value && { color: colors.text, fontWeight: "600" },
+              ]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* Service picker */}
-      <Text style={styles.label}>Service</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
-        {services?.map((svc: Service) => (
-          <TouchableOpacity
-            key={svc.id}
-            style={[styles.chip, selectedServiceId === svc.id && styles.chipActive]}
-            onPress={() => { setSelectedServiceId(svc.id); setSelectedEnvId(""); }}
-          >
-            <Text style={[styles.chipText, selectedServiceId === svc.id && styles.chipTextActive]}>
-              {svc.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Environment picker */}
-      {selectedServiceId ? (
-        <>
-          <Text style={styles.label}>Environment</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
-            {environments?.map((env: Environment) => (
-              <TouchableOpacity
-                key={env.id}
-                style={[styles.chip, selectedEnvId === env.id && styles.chipActive]}
-                onPress={() => setSelectedEnvId(env.id)}
-              >
-                <Text style={[styles.chipText, selectedEnvId === env.id && styles.chipTextActive]}>
-                  {env.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </>
-      ) : null}
-
-      {/* Secret status */}
-      {secretStatus ? (
-        <View style={styles.statusBox}>
-          <Text style={styles.statusTitle}>Current Status:</Text>
-          <Text style={{ fontSize: 13, color: secretStatus.has_jwt_secret ? colors.green[700] : colors.gray[400] }}>
-            {secretStatus.has_jwt_secret ? "jwt_secret saved" : "jwt_secret not set"}
-          </Text>
-          <Text style={{ fontSize: 13, color: secretStatus.has_admin_password ? colors.green[700] : colors.gray[400] }}>
-            {secretStatus.has_admin_password ? "admin_password saved" : "admin_password not set"}
-          </Text>
+      {/* Info section */}
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>About</Text>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>App</Text>
+          <Text style={[styles.infoValue, { color: colors.text }]}>Swagger Aggregator</Text>
         </View>
-      ) : null}
-
-      {/* Secret inputs */}
-      <Text style={styles.label}>JWT Secret</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter jwt_secret (leave empty to keep current)"
-        value={jwtSecret}
-        onChangeText={setJwtSecret}
-        secureTextEntry
-        placeholderTextColor={colors.gray[400]}
-      />
-
-      <Text style={styles.label}>Admin Password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter admin_password (leave empty to keep current)"
-        value={adminPassword}
-        onChangeText={setAdminPassword}
-        secureTextEntry
-        placeholderTextColor={colors.gray[400]}
-      />
-
-      {/* Save button */}
-      <TouchableOpacity
-        style={[styles.button, !selectedEnvId && styles.buttonDisabled]}
-        onPress={handleSave}
-        disabled={!selectedEnvId}
-      >
-        <Text style={styles.buttonText}>Save Secrets</Text>
-      </TouchableOpacity>
+        <View style={[styles.divider, { backgroundColor: colors.separator }]} />
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Version</Text>
+          <Text style={[styles.infoValue, { color: colors.text }]}>0.1.0</Text>
+        </View>
+        <View style={[styles.divider, { backgroundColor: colors.separator }]} />
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Secrets</Text>
+          <Text style={[styles.infoValue, { color: colors.textMuted }]}>Manage per service → environment</Text>
+        </View>
+      </View>
 
       {/* Logout */}
       <TouchableOpacity
-        style={styles.logoutBtn}
+        style={[styles.logoutBtn, { borderColor: colors.error }]}
         onPress={() =>
           Alert.alert("Logout", "Are you sure?", [
             { text: "Cancel", style: "cancel" },
@@ -183,29 +104,27 @@ export default function SettingsScreen() {
           ])
         }
       >
-        <Text style={styles.logoutText}>Logout</Text>
+        <Ionicons name="log-out-outline" size={18} color={colors.error} />
+        <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16 },
-  infoBanner: { backgroundColor: colors.blue[50], borderRadius: 10, padding: 12, marginBottom: 16 },
-  infoText: { fontSize: 13, color: colors.blue[800], lineHeight: 18 },
-  label: { fontSize: 13, fontWeight: "600", color: colors.gray[700], marginBottom: 6 },
-  chips: { marginBottom: 16, flexGrow: 0 },
-  chip: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.gray[200], borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8 },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { fontSize: 14, color: colors.gray[700] },
-  chipTextActive: { color: colors.white },
-  statusBox: { backgroundColor: colors.gray[50], borderRadius: 8, padding: 12, marginBottom: 16, gap: 4 },
-  statusTitle: { fontSize: 13, fontWeight: "600", color: colors.gray[700], marginBottom: 4 },
-  input: { borderWidth: 1, borderColor: colors.gray[300], borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginBottom: 12, backgroundColor: colors.white, color: colors.gray[900] },
-  button: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 14, alignItems: "center", marginTop: 4, marginBottom: 24 },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: colors.white, fontSize: 16, fontWeight: "600" },
-  logoutBtn: { borderWidth: 1, borderColor: colors.red[500], borderRadius: 10, paddingVertical: 14, alignItems: "center", marginBottom: 40 },
-  logoutText: { color: colors.red[500], fontSize: 16, fontWeight: "600" },
+  container: { flex: 1 },
+  content: { padding: 16, paddingBottom: 40 },
+  sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, marginTop: 8 },
+  card: { borderRadius: 12, padding: 16, marginBottom: 16 },
+  cardLabel: { fontSize: 15, fontWeight: "600", marginBottom: 12 },
+  themeRow: { flexDirection: "row", borderRadius: 10, padding: 4, gap: 4 },
+  themeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 8 },
+  themeBtnActive: { shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 },
+  themeBtnText: { fontSize: 13 },
+  infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 4 },
+  infoLabel: { fontSize: 14 },
+  infoValue: { fontSize: 14, fontWeight: "500" },
+  divider: { height: 1, marginVertical: 8 },
+  logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderRadius: 12, paddingVertical: 14, marginTop: 8 },
+  logoutText: { fontSize: 16, fontWeight: "600" },
 });

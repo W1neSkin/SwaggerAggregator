@@ -33,7 +33,7 @@ export default function ExplorerPage() {
       <ApiTreeSidebar onSelect={handleSelect} selectedKey={selectedKey} />
 
       {/* Right: context-aware detail panel */}
-      <div className="flex-1 overflow-y-auto bg-[#f8fafc]">
+      <div className="flex-1 overflow-y-auto bg-[var(--background)]">
         {!selection ? (
           <EmptyState />
         ) : selection.type === "service" ? (
@@ -57,13 +57,13 @@ export default function ExplorerPage() {
 
 function EmptyState() {
   return (
-    <div className="flex items-center justify-center h-full text-gray-400">
+    <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
       <div className="text-center">
-        <svg className="w-16 h-16 mx-auto mb-4 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+        <svg className="w-16 h-16 mx-auto mb-4 text-gray-200 dark:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
         </svg>
         <p className="text-lg font-medium">Select an item</p>
-        <p className="text-sm text-gray-300 mt-1">Click a service, environment, or endpoint in the sidebar</p>
+        <p className="text-sm text-gray-300 dark:text-gray-600 mt-1">Click a service, environment, or endpoint in the sidebar</p>
       </div>
     </div>
   );
@@ -83,23 +83,23 @@ function ServiceDetail({ service, onSelect }: { service: Service; onSelect: (sel
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0">
             <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
             </svg>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{service.name}</h1>
-            {service.description && <p className="text-sm text-gray-500">{service.description}</p>}
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{service.name}</h1>
+            {service.description && <p className="text-sm text-gray-500 dark:text-gray-400">{service.description}</p>}
           </div>
         </div>
       </div>
 
       {/* Stats */}
       <div className="flex gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 px-4 py-3">
-          <p className="text-2xl font-bold text-gray-900">{environments?.length ?? "..."}</p>
-          <p className="text-xs text-gray-500">Environments</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{environments?.length ?? "..."}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Environments</p>
         </div>
       </div>
 
@@ -131,12 +131,12 @@ function EnvironmentCard({ env, serviceId, onSelect }: { env: Environment; servi
   return (
     <button
       onClick={() => onSelect({ type: "environment", env, serviceId })}
-      className="w-full text-left bg-white rounded-xl border border-gray-100 p-4 hover:border-blue-200 hover:shadow-sm transition-all"
+      className="w-full text-left bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-sm transition-all"
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-800">{env.name}</p>
-          <p className="text-xs text-gray-400 font-mono mt-0.5">{env.base_url}</p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{env.name}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{env.base_url}</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Secret status dots */}
@@ -205,14 +205,14 @@ function EnvironmentDetail({ env, onSelect }: { env: Environment; onSelect: (sel
       {/* Header */}
       <div>
         <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Environment</p>
-        <h1 className="text-xl font-bold text-gray-900">{env.name}</h1>
-        <p className="text-sm text-gray-500 font-mono mt-0.5">{env.base_url}</p>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{env.name}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-mono mt-0.5">{env.base_url}</p>
       </div>
 
       {/* Secrets management */}
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-800">Secrets</h3>
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Secrets</h3>
           <p className="text-xs text-gray-400 mt-0.5">Store jwt_secret and admin_password for this environment</p>
         </div>
 
@@ -222,21 +222,21 @@ function EnvironmentDetail({ env, onSelect }: { env: Environment; onSelect: (sel
 
           {/* JWT Secret input */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">JWT Secret</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">JWT Secret</label>
             <input
               type="password" value={jwtSecret} onChange={(e) => setJwtSecret(e.target.value)}
               placeholder="Enter new jwt_secret (leave empty to keep current)"
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Admin Password input */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Admin Password</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Admin Password</label>
             <input
               type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)}
               placeholder="Enter new admin_password (leave empty to keep current)"
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -278,7 +278,7 @@ function EnvironmentDetail({ env, onSelect }: { env: Environment; onSelect: (sel
 /** Displays green/gray dots for jwt_secret and admin_password */
 function SecretStatusBadges({ status }: { status: SecretStatus }) {
   return (
-    <div className="flex gap-4 p-3 bg-gray-50 rounded-lg">
+    <div className="flex gap-4 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
       <div className="flex items-center gap-1.5 text-sm">
         <div className={`w-2.5 h-2.5 rounded-full ${status.has_jwt_secret ? "bg-emerald-500" : "bg-gray-300"}`} />
         <span className={status.has_jwt_secret ? "text-gray-700" : "text-gray-400"}>jwt_secret</span>
@@ -310,19 +310,19 @@ function EndpointOverviewSection({
         {label} <span className="text-gray-300">({endpoints.length} endpoints)</span>
       </h3>
       {endpoints.length > 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
           {endpoints.map((ep: EndpointInfo, idx: number) => {
             const mc = methodBadge[ep.method] || "bg-gray-100 text-gray-600";
             return (
               <button
                 key={idx}
                 onClick={() => onSelect({ type: "endpoint", endpoint: ep, environmentId: envId, baseUrl, swaggerType })}
-                className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold w-12 justify-center shrink-0 ${mc}`}>
                   {ep.method}
                 </span>
-                <span className="font-mono text-xs text-gray-700 truncate">{ep.path}</span>
+                <span className="font-mono text-xs text-gray-700 dark:text-gray-300 truncate">{ep.path}</span>
                 {ep.summary && (
                   <span className="text-[11px] text-gray-400 truncate ml-auto">{ep.summary}</span>
                 )}
@@ -360,12 +360,12 @@ function EndpointDetail({
           {endpoint.method}
         </span>
         <div className="min-w-0">
-          <p className="font-mono text-base text-gray-900 font-medium break-all">{endpoint.path}</p>
-          {endpoint.summary && <p className="text-sm text-gray-500 mt-1">{endpoint.summary}</p>}
+          <p className="font-mono text-base text-gray-900 dark:text-gray-100 font-medium break-all">{endpoint.path}</p>
+          {endpoint.summary && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{endpoint.summary}</p>}
           {endpoint.tags.length > 0 && (
             <div className="flex gap-1.5 mt-2 flex-wrap">
               {endpoint.tags.map((tag: string) => (
-                <span key={tag} className="text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{tag}</span>
+                <span key={tag} className="text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">{tag}</span>
               ))}
             </div>
           )}
@@ -376,7 +376,7 @@ function EndpointDetail({
       {endpoint.description && (
         <div>
           <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Description</h4>
-          <p className="text-sm text-gray-700">{endpoint.description}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{endpoint.description}</p>
         </div>
       )}
 
@@ -384,8 +384,8 @@ function EndpointDetail({
       {endpoint.parameters.length > 0 && (
         <div>
           <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Parameters</h4>
-          <div className="bg-white rounded-xl overflow-hidden text-xs border border-gray-100">
-            <div className="grid grid-cols-6 gap-2 p-2.5 font-semibold text-gray-500 border-b border-gray-200">
+          <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden text-xs border border-gray-100 dark:border-gray-700">
+            <div className="grid grid-cols-6 gap-2 p-2.5 font-semibold text-gray-500 border-b border-gray-200 dark:border-gray-700">
               <span>Name</span><span>In</span><span>Type</span><span>Required</span><span>Description</span><span>Example</span>
             </div>
             {endpoint.parameters.map((param: Record<string, unknown>, pIdx: number) => {
@@ -393,8 +393,8 @@ function EndpointDetail({
               const example = param.example ?? schema?.example ?? schema?.default ?? "";
               const description = param.description ?? "";
               return (
-                <div key={pIdx} className="grid grid-cols-6 gap-2 p-2.5 border-b border-gray-100 last:border-0">
-                  <span className="font-mono text-gray-800 font-medium">{String(param.name || "")}</span>
+                <div key={pIdx} className="grid grid-cols-6 gap-2 p-2.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                  <span className="font-mono text-gray-800 dark:text-gray-200 font-medium">{String(param.name || "")}</span>
                   <span className="text-gray-500">{String(param.in || "")}</span>
                   <span className="text-gray-500">{String(schema?.type || param.type || "")}</span>
                   <span>{param.required ? <span className="text-amber-600 font-semibold">Yes</span> : "No"}</span>
@@ -411,7 +411,7 @@ function EndpointDetail({
       {endpoint.request_body && (
         <div>
           <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Request Body</h4>
-          <pre className="bg-white rounded-xl border border-gray-100 p-3 text-xs overflow-auto max-h-48 font-mono text-gray-700">
+          <pre className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 text-xs overflow-auto max-h-48 font-mono text-gray-700 dark:text-gray-300">
             {formatJson(endpoint.request_body)}
           </pre>
         </div>
@@ -423,7 +423,7 @@ function EndpointDetail({
           <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Responses</h4>
           <div className="space-y-1">
             {Object.entries(endpoint.responses).map(([code, detail]) => (
-              <div key={code} className="bg-white rounded-lg border border-gray-100 p-2 text-xs flex items-baseline gap-2">
+              <div key={code} className="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-gray-700 p-2 text-xs flex items-baseline gap-2">
                 <span className={`font-bold ${code.startsWith("2") ? "text-emerald-600" : code.startsWith("4") ? "text-amber-600" : "text-gray-600"}`}>{code}</span>
                 <span className="text-gray-500">
                   {(detail as Record<string, unknown>)?.description
@@ -437,12 +437,12 @@ function EndpointDetail({
       )}
 
       {/* Try it out */}
-      <div className="border-t border-gray-200 pt-4">
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
         <button
           onClick={() => setExecuteOpen(!executeOpen)}
           className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
             executeOpen
-              ? "bg-gray-100 text-gray-600"
+              ? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
               : "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
           }`}
         >

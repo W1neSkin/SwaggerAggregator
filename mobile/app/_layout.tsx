@@ -1,6 +1,6 @@
 /**
  * Root layout for the mobile app.
- * Sets up React Query, API client, and auth-based navigation.
+ * Sets up React Query, API client, ThemeProvider, and auth-based navigation.
  * Redirects to login if not authenticated.
  */
 
@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { StatusBar } from "expo-status-bar";
 import { authApi } from "@swagger-aggregator/shared";
 import { setupApi } from "../lib/api";
-import { colors } from "../lib/colors";
+import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -21,6 +21,7 @@ const queryClient = new QueryClient({
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const segments = useSegments();
+  const { colors } = useTheme();
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ["currentUser"],
@@ -55,6 +56,20 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Inner component that uses theme for StatusBar */
+function AppContent() {
+  const { isDark } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <AuthGuard>
+        <Slot />
+      </AuthGuard>
+    </>
+  );
+}
+
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
 
@@ -67,10 +82,9 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="dark" />
-      <AuthGuard>
-        <Slot />
-      </AuthGuard>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

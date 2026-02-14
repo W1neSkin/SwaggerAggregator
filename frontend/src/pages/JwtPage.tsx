@@ -63,21 +63,21 @@ export default function JwtPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">JWT Generator</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">JWT Generator</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Generate JWT tokens for authenticating with your services
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="p-6 space-y-5">
           {/* Service */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Service</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Service</label>
             <select
               value={selectedServiceId}
               onChange={(e) => { setSelectedServiceId(e.target.value); setSelectedEnvId(""); }}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select a service...</option>
               {services?.map((svc: Service) => (
@@ -88,12 +88,12 @@ export default function JwtPage() {
 
           {/* Environment */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Environment</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Environment</label>
             <select
               value={selectedEnvId}
               onChange={(e) => setSelectedEnvId(e.target.value)}
               disabled={!selectedServiceId}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white disabled:opacity-50"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             >
               <option value="">Select an environment...</option>
               {environments?.map((env: Environment) => (
@@ -104,24 +104,24 @@ export default function JwtPage() {
 
           {/* User ID */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               User ID <span className="text-gray-400 font-normal">(JWT "sub" claim)</span>
             </label>
             <input
               type="text" value={userId} onChange={(e) => setUserId(e.target.value)}
               placeholder="e.g., 550e8400-e29b-41d4-a716-446655440000"
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-mono dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Secret source toggle */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">JWT Secret Source</label>
-            <div className="flex bg-gray-100 rounded-xl p-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">JWT Secret Source</label>
+            <div className="flex bg-gray-100 dark:bg-slate-700 rounded-xl p-1">
               {(["stored", "manual"] as const).map((mode) => (
                 <button key={mode} onClick={() => setSecretMode(mode)}
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    secretMode === mode ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+                    secretMode === mode ? "bg-white dark:bg-slate-600 shadow-sm text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
                   }`}>
                   {mode === "stored" ? "Use Stored" : "Enter Manually"}
                 </button>
@@ -145,7 +145,7 @@ export default function JwtPage() {
               <div className="mt-2">
                 <input type="password" value={manualSecret} onChange={(e) => setManualSecret(e.target.value)}
                   placeholder="Enter jwt_secret (will NOT be stored)"
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" />
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 <p className="text-xs text-gray-400 mt-1.5">Used for this request only. Not saved.</p>
               </div>
             )}
@@ -158,7 +158,7 @@ export default function JwtPage() {
         </div>
 
         {/* Generate button — full-width footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-100 dark:border-gray-700">
           <button onClick={handleGenerate}
             className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold text-sm hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/20 transition-all">
             Generate JWT
@@ -168,9 +168,9 @@ export default function JwtPage() {
 
       {/* Result */}
       {generatedToken && (
-        <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Generated Token</h3>
+        <div className="mt-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Generated Token</h3>
             <button onClick={handleCopy}
               className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors">
               {copied ? "Copied!" : "Copy"}
@@ -178,11 +178,11 @@ export default function JwtPage() {
           </div>
           <div className="p-6 space-y-4">
             <textarea readOnly value={generatedToken} rows={4}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs resize-none" />
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-xl font-mono text-xs dark:text-gray-200 resize-none" />
             {tokenPayload && (
               <div>
                 <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Payload</h4>
-                <pre className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono overflow-auto">
+                <pre className="px-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-mono dark:text-gray-200 overflow-auto">
                   {JSON.stringify(tokenPayload, null, 2)}
                 </pre>
               </div>

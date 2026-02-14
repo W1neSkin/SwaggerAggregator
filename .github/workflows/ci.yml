@@ -1,0 +1,86 @@
+# CI pipeline — runs on every push and pull request.
+# Checks code quality for backend (Python) and frontend (TypeScript).
+# Render and Vercel have their own auto-deploy hooks, so this only runs checks.
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Backend: Python lint + type check
+  # ──────────────────────────────────────────────
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check imports with Python
+        run: python -c "import app.main; print('Backend imports OK')"
+
+  # ──────────────────────────────────────────────
+  # Frontend: TypeScript build check
+  # ──────────────────────────────────────────────
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check (shared)
+        run: npm run typecheck --workspace=shared
+
+      - name: Build frontend
+        run: npm run build --workspace=frontend
+
+  # ──────────────────────────────────────────────
+  # Mobile: TypeScript check
+  # ──────────────────────────────────────────────
+  mobile:
+    name: Mobile checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check (mobile)
+        working-directory: mobile
+        run: npx tsc --noEmit

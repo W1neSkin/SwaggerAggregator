@@ -1,0 +1,58 @@
+# Render Blueprint — auto-deploy the backend from GitHub.
+# Docs: https://docs.render.com/blueprint-spec
+#
+# How to use:
+# 1. Push this file to your GitHub repo.
+# 2. Go to https://dashboard.render.com/blueprints
+# 3. Click "New Blueprint Instance" and connect this repo.
+# 4. Render reads this file and creates the service automatically.
+# 5. Set the environment variables marked "sync: false" in Render dashboard.
+
+services:
+  - type: web
+    name: swagger-aggregator-api
+    runtime: docker
+    region: oregon
+
+    # Build from the backend Dockerfile
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+
+    # Free tier
+    plan: free
+
+    # Health check endpoint
+    healthCheckPath: /api/health
+
+    # Auto-deploy on push to master
+    branch: master
+    autoDeploy: true
+
+    # Environment variables
+    # "sync: false" means the value must be set manually in the Render dashboard.
+    envVars:
+      # Neon PostgreSQL connection string
+      # Format: postgresql+asyncpg://user:pass@ep-xxx.us-east-2.aws.neon.tech/dbname?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+
+      # Secret key for signing aggregator JWT tokens
+      # Generate with: openssl rand -hex 32
+      - key: SECRET_KEY
+        sync: false
+
+      # Master key for encrypting user secrets (Fernet)
+      # Generate with: openssl rand -hex 32
+      - key: MASTER_ENCRYPTION_KEY
+        sync: false
+
+      # CORS: allowed frontend origins (comma-separated)
+      # Set to your Vercel URL after deploying frontend
+      - key: CORS_ORIGINS
+        sync: false
+
+      # Server config (defaults are fine for Render)
+      - key: BACKEND_HOST
+        value: "0.0.0.0"
+      - key: BACKEND_PORT
+        value: "8000"

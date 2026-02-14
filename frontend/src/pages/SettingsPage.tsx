@@ -71,10 +71,15 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
-      <p className="text-gray-500 mb-8">
+      <p className="text-gray-500 mb-4">
         Manage your jwt_secret and admin_password for each environment.
         Secrets are encrypted and stored securely.
       </p>
+      <div className="mb-8 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+        Storing secrets is optional. You can choose to save them only for
+        certain environments (e.g. local, dev) and enter them manually
+        when needed for others (e.g. stage, prod) via the JWT Generator page.
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         {/* Service selector */}

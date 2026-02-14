@@ -20,6 +20,9 @@ export interface SecretStatus {
 export interface JwtGenerateRequest {
   environment_id: string;
   user_id_value: string;
+  /** Optional: provide jwt_secret directly instead of using stored one.
+   *  Useful for environments where you don't want to persist secrets. */
+  jwt_secret?: string;
 }
 
 /** Response containing the generated JWT token */

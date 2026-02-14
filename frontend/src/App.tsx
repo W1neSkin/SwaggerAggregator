@@ -11,8 +11,7 @@ import { setupApi } from "./lib/api";
 import { useCurrentUser } from "./hooks/useAuth";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import ServicePage from "./pages/ServicePage";
+import ExplorerPage from "./pages/ExplorerPage";
 import JwtPage from "./pages/JwtPage";
 import SettingsPage from "./pages/SettingsPage";
 
@@ -59,8 +58,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/service/:serviceId" element={<ServicePage />} />
+        <Route path="/" element={<ExplorerPage />} />
         <Route path="/jwt" element={<JwtPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

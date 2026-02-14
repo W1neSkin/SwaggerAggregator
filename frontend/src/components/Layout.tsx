@@ -78,9 +78,9 @@ export default function Layout() {
   const avatarLetter = user?.email?.charAt(0)?.toUpperCase() || "?";
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
-      {/* Navigation bar */}
-      <nav className="bg-white/80 backdrop-blur-lg border-b border-gray-100 sticky top-0 z-50">
+    <div className="h-screen flex flex-col bg-[#f8fafc]">
+      {/* Navigation bar (h-16 fixed) */}
+      <nav className="bg-white/80 backdrop-blur-lg border-b border-gray-100 sticky top-0 z-50 shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo and main nav */}
@@ -91,7 +91,7 @@ export default function Layout() {
                   Swagger Aggregator
                 </span>
               </Link>
-              <NavLink to="/" icon={icons.dashboard} label="Dashboard" />
+              <NavLink to="/" icon={icons.dashboard} label="Explorer" />
               <NavLink to="/jwt" icon={icons.key} label="JWT" />
               <NavLink to="/settings" icon={icons.settings} label="Settings" />
             </div>
@@ -119,8 +119,8 @@ export default function Layout() {
         </div>
       </nav>
 
-      {/* Page content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* Page content — flex-1 fills remaining height */}
+      <main className="flex-1 overflow-hidden">
         <Outlet />
       </main>
     </div>

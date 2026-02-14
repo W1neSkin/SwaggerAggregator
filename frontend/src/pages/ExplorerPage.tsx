@@ -453,7 +453,7 @@ function EndpointDetail({
           {executeOpen ? "Close" : "Try it out"}
         </button>
         {executeOpen && (
-          <ExecutePanel endpoint={endpoint} baseUrl={baseUrl} environmentId={environmentId} swaggerType={swaggerType} />
+          <ExecutePanel key={`${environmentId}:${endpoint.method}:${endpoint.path}`} endpoint={endpoint} baseUrl={baseUrl} environmentId={environmentId} swaggerType={swaggerType} />
         )}
       </div>
     </div>

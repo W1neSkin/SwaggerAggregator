@@ -60,12 +60,8 @@ async def execute_request(
                 db, current_user.id, data.environment_id, current_user.encryption_salt
             )
         if password:
-            # Send admin password as query parameter (most common FastAPI admin pattern)
-            # and also as header (for services that expect header-based auth)
-            if data.query_params is None:
-                data.query_params = {}
-            data.query_params.setdefault("admin_password", password)
-            headers.setdefault("X-Admin-Password", password)
+            # Send as X-API-Key header (standard FastAPI APIKeyHeader pattern)
+            headers.setdefault("X-API-Key", password)
 
     # Execute the request to the target service
     try:

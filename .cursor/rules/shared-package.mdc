@@ -1,0 +1,23 @@
+---
+description: Shared TypeScript package conventions
+globs: shared/**/*.ts
+alwaysApply: false
+---
+
+# Shared Package Conventions
+
+## Purpose
+The `shared/` package contains TypeScript types and API client code shared between web and mobile.
+
+## Rules
+- All types must mirror the backend Pydantic schemas exactly
+- API functions return typed data (not raw axios responses)
+- Use `type` imports to avoid bundling issues with verbatimModuleSyntax
+- TokenStorage interface allows web (localStorage) and mobile (SecureStore) adapters
+- Never import platform-specific code here (no React, no React Native)
+
+## Adding New API Endpoints
+1. Add types in `shared/src/types/`
+2. Add API function in `shared/src/api/`
+3. Re-export from `shared/src/index.ts`
+4. Use in frontend via `import { someApi } from "@swagger-aggregator/shared"`

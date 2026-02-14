@@ -1,0 +1,27 @@
+---
+description: Project overview and architecture for Swagger Aggregator
+alwaysApply: true
+---
+
+# Swagger Aggregator - Project Overview
+
+Multi-user web + mobile app that aggregates Swagger/OpenAPI specs from multiple services across environments.
+
+## Architecture
+- **Backend**: Python 3.11, FastAPI, async SQLAlchemy, PostgreSQL, Alembic
+- **Frontend (Web)**: React 18, Vite, TypeScript, Tailwind CSS v4
+- **Frontend (Mobile)**: Expo (React Native), TypeScript
+- **Shared**: TypeScript types + API client (npm workspace `@swagger-aggregator/shared`)
+
+## Project Structure
+- `backend/` — FastAPI app (models, schemas, routers, services)
+- `shared/` — Shared TS types and axios API client
+- `frontend/` — React web app (Vite)
+- `mobile/` — Expo React Native app (Phase 6)
+- `docker-compose.yml` — Local dev: backend + frontend + PostgreSQL
+
+## Key Patterns
+- Auth: JWT tokens (python-jose), bcrypt password hashing
+- Secrets: Fernet encryption with per-user salt + MASTER_ENCRYPTION_KEY
+- API client: shared axios client with pluggable TokenStorage adapter
+- Each service has environments (local/dev/stage/prod), each with main + admin swagger

@@ -1,0 +1,22 @@
+---
+description: Docker and infrastructure conventions
+globs: "{docker-compose.yml,**/Dockerfile,*.dockerfile}"
+alwaysApply: false
+---
+
+# Docker & Infrastructure
+
+## Local Development
+- `docker-compose up --build -d db backend` — start DB + backend
+- `npm run dev --workspace=frontend` — start frontend dev server (port 5173)
+- Vite proxy forwards `/api` to backend at localhost:8000
+
+## Environment Variables
+- Backend reads from `.env` file (never commit secrets!)
+- Docker Compose sets env vars directly in `environment:` section
+- Key vars: DATABASE_URL, SECRET_KEY, MASTER_ENCRYPTION_KEY, CORS_ORIGINS
+
+## Database
+- PostgreSQL 16 in Docker, data persisted in `postgres_data` volume
+- Backend auto-creates tables on startup (dev mode)
+- Use Alembic migrations for schema changes in production

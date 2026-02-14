@@ -1,0 +1,36 @@
+---
+description: React/TypeScript frontend conventions
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend React Conventions
+
+## Style
+- Functional components only, no class components
+- TypeScript strict mode, no `any` unless absolutely necessary
+- Import types from `@swagger-aggregator/shared` (shared package)
+- Use `type` imports for type-only imports (`import type { ... }`)
+
+## State Management
+- TanStack Query for server state (fetching, caching, mutations)
+- React state (`useState`) for local UI state only
+- No Redux or Zustand — keep it simple
+
+## API Calls
+- All API calls go through `@swagger-aggregator/shared` functions
+- Never call axios directly in components
+- Use custom hooks in `hooks/` for TanStack Query wrappers
+
+## Component Structure
+```
+components/   — Reusable UI components
+pages/        — Route pages (one per route)
+hooks/        — Custom hooks (TanStack Query wrappers)
+lib/          — Utilities (API setup, token storage)
+```
+
+## Tailwind CSS
+- Use Tailwind v4 utility classes directly
+- Custom theme variables defined in `index.css` (:root)
+- No CSS modules or styled-components

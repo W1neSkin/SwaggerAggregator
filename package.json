@@ -1,0 +1,11 @@
+{
+  "name": "swagger-aggregator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Swagger Aggregator - manage multiple services from one place",
+  "workspaces": [
+    "shared",
+    "frontend",
+    "mobile"
+  ]
+}

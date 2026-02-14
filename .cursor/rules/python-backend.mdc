@@ -1,0 +1,36 @@
+---
+description: Python/FastAPI backend conventions
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend Python Conventions
+
+## Style
+- Use async/await everywhere (async SQLAlchemy, async endpoints)
+- Type hints on all functions (return types + parameters)
+- Pydantic v2 for schemas (`model_config = {"from_attributes": True}`)
+- Keep files under 200 lines; split large routers into separate files
+
+## FastAPI Patterns
+- Use `Depends()` for dependency injection (see `routers/deps.py`)
+- `CurrentUser` and `DbSession` are type aliases for common dependencies
+- All API routes under `/api/` prefix
+- Return proper HTTP status codes (201 for creation, 204 for deletion)
+
+## Database
+- SQLAlchemy 2.0 mapped_column style (not Column)
+- UUID primary keys via `uuid.uuid4`
+- Always use `select()` instead of legacy `session.query()`
+- Relationships with `lazy="selectin"` to avoid N+1 queries
+
+## Example Router Pattern
+```python
+@router.post("", response_model=ResponseSchema, status_code=status.HTTP_201_CREATED)
+async def create_item(data: CreateSchema, db: DbSession, current_user: CurrentUser):
+    item = Model(**data.model_dump(), created_by=current_user.id)
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+```

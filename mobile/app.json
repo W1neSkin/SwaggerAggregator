@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Swagger Aggregator",
+    "slug": "swagger-aggregator-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "swagger-aggregator",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.swaggeraggregator.mobile",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.swaggeraggregator.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#2563eb"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-local-authentication"
+    ]
+  }
+}

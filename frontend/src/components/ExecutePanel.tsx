@@ -111,7 +111,10 @@ export default function ExecutePanel({
   const buildUrl = () => {
     let path = endpoint.path;
     for (const [name, value] of Object.entries(pathParams)) {
-      path = path.replace(`{${name}}`, encodeURIComponent(value || name));
+      // Only substitute if the user actually entered a value; leave {name} placeholder otherwise
+      if (value) {
+        path = path.replace(`{${name}}`, encodeURIComponent(value));
+      }
     }
     // Remove trailing slashes from baseUrl, leading slashes from path
     const base = baseUrl.replace(/\/+$/, "");

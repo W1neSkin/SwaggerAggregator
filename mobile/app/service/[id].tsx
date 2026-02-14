@@ -21,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { servicesApi, swaggerApi } from "@swagger-aggregator/shared";
 import type { Environment, EndpointInfo, SwaggerType } from "@swagger-aggregator/shared";
 import { colors, methodColors } from "../../lib/colors";
+import ExecutePanel from "../../components/ExecutePanel";
 
 export default function ServiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,6 +31,7 @@ export default function ServiceDetailScreen() {
   const [selectedEnvId, setSelectedEnvId] = useState("");
   const [swaggerType, setSwaggerType] = useState<SwaggerType>("main");
   const [expandedEndpoint, setExpandedEndpoint] = useState<string | null>(null);
+  const [executeEndpoint, setExecuteEndpoint] = useState<string | null>(null);
   const [showAddEnv, setShowAddEnv] = useState(false);
 
   // New environment form
@@ -100,6 +102,9 @@ export default function ServiceDetailScreen() {
       router.back();
     },
   });
+
+  // Get selected environment for base_url
+  const selectedEnv = environments?.find((env: Environment) => env.id === selectedEnvId);
 
   /** Toggle endpoint detail panel */
   const toggleEndpoint = (key: string) => {
@@ -295,6 +300,26 @@ export default function ServiceDetailScreen() {
                           </Text>
                         </View>
                       ) : null}
+
+                      {/* Try it out button */}
+                      <TouchableOpacity
+                        style={[styles.tryBtn, executeEndpoint === key && styles.tryBtnActive]}
+                        onPress={() => setExecuteEndpoint(executeEndpoint === key ? null : key)}
+                      >
+                        <Text style={[styles.tryBtnText, executeEndpoint === key && styles.tryBtnTextActive]}>
+                          {executeEndpoint === key ? "Close" : "Try it out"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Execute panel */}
+                      {executeEndpoint === key && selectedEnv ? (
+                        <ExecutePanel
+                          endpoint={ep}
+                          baseUrl={selectedEnv.base_url}
+                          environmentId={selectedEnv.id}
+                          swaggerType={swaggerType}
+                        />
+                      ) : null}
                     </View>
                   ) : null}
                 </TouchableOpacity>
@@ -349,5 +374,9 @@ const styles = StyleSheet.create({
   tag: { backgroundColor: colors.gray[100], borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2 },
   tagText: { fontSize: 11, color: colors.gray[600] },
   paramText: { fontSize: 12, color: colors.gray[600], marginLeft: 8 },
+  tryBtn: { marginTop: 10, backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 8, alignItems: "center" },
+  tryBtnActive: { backgroundColor: colors.gray[200] },
+  tryBtnText: { color: colors.white, fontSize: 13, fontWeight: "600" },
+  tryBtnTextActive: { color: colors.gray[700] },
   codeText: { fontSize: 11, color: colors.gray[700], fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", backgroundColor: colors.gray[50], padding: 8, borderRadius: 6, marginTop: 4 },
 });

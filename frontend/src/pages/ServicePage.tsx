@@ -10,6 +10,7 @@ import { servicesApi, swaggerApi } from "@swagger-aggregator/shared";
 import type { Environment, EndpointInfo, SwaggerType } from "@swagger-aggregator/shared";
 import ConfirmDialog from "../components/ConfirmDialog";
 import LoadingSpinner from "../components/LoadingSpinner";
+import ExecutePanel from "../components/ExecutePanel";
 
 export default function ServicePage() {
   const { serviceId } = useParams<{ serviceId: string }>();
@@ -24,6 +25,8 @@ export default function ServicePage() {
   const [searchFilter, setSearchFilter] = useState("");
   // Tracks which endpoint is expanded (by operation_id or method+path fallback)
   const [expandedEndpointKey, setExpandedEndpointKey] = useState<string | null>(null);
+  // Tracks which endpoint has the execute panel open
+  const [executeEndpointKey, setExecuteEndpointKey] = useState<string | null>(null);
   // Confirm dialog state for delete actions
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -82,6 +85,9 @@ export default function ServicePage() {
       }
     },
   });
+
+  // Get the selected environment object (for base_url)
+  const selectedEnv = environments?.find((env: Environment) => env.id === selectedEnvId);
 
   // Filter endpoints by search term
   const filteredEndpoints = endpoints?.filter(
@@ -405,6 +411,30 @@ export default function ServicePage() {
                               ))}
                             </div>
                           </div>
+                        )}
+
+                        {/* Execute / Try it out button */}
+                        <button
+                          onClick={() =>
+                            setExecuteEndpointKey(executeEndpointKey === key ? null : key)
+                          }
+                          className={`mt-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                            executeEndpointKey === key
+                              ? "bg-gray-200 text-gray-700"
+                              : "bg-blue-600 text-white hover:bg-blue-700"
+                          }`}
+                        >
+                          {executeEndpointKey === key ? "Close" : "Try it out"}
+                        </button>
+
+                        {/* Execute panel */}
+                        {executeEndpointKey === key && selectedEnv && (
+                          <ExecutePanel
+                            endpoint={ep}
+                            baseUrl={selectedEnv.base_url}
+                            environmentId={selectedEnv.id}
+                            swaggerType={swaggerType}
+                          />
                         )}
                       </div>
                     )}

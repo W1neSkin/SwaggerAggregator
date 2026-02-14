@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, services, environments, swagger, secrets, jwt_generator
+from app.routers import auth, services, environments, swagger, secrets, jwt_generator, proxy
 
 
 @asynccontextmanager
@@ -52,6 +52,7 @@ app.include_router(environments.router)
 app.include_router(swagger.router)
 app.include_router(secrets.router)
 app.include_router(jwt_generator.router)
+app.include_router(proxy.router)
 
 
 @app.get("/api/health", tags=["Health"])
